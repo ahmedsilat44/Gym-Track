@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, CircleStop, Dumbbell, Flame, RotateCcw, Trash2, Trophy } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, CircleStop, Dumbbell, Flame, RotateCcw, Target, Trash2, Trophy, Users } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Modal from '../components/Modal'
@@ -9,7 +9,7 @@ const formatTimer = (seconds) => [Math.floor(seconds / 3600), Math.floor((second
 
 export default function ActiveSession() {
   const navigate = useNavigate()
-  const { activeWorkout, exercises, sets, loading, logSet, deleteSet, endWorkout } = useData()
+  const { activeWorkout, exercises, sets, loading, logSet, deleteSet, endWorkout, shareProgress } = useData()
   const [exerciseIndex, setExerciseIndex] = useState(0)
   const [weight, setWeight] = useState(20)
   const [reps, setReps] = useState(8)
@@ -18,10 +18,12 @@ export default function ActiveSession() {
   const [prMessage, setPrMessage] = useState('')
   const [showFinish, setShowFinish] = useState(false)
   const [notes, setNotes] = useState('')
+  const [shareWithFriends, setShareWithFriends] = useState(false)
   const sessionExercises = activeWorkout?.exerciseIds.map((id) => exercises.find((item) => item.id === id)).filter(Boolean) ?? []
   const exercise = sessionExercises[exerciseIndex]
   const sessionSets = useMemo(() => sets.filter((item) => item.session_id === activeWorkout?.sessionId), [activeWorkout, sets])
   const exerciseSets = sessionSets.filter((item) => item.exercise_id === exercise?.id).sort((a, b) => a.set_number - b.set_number)
+  const target = exercise ? activeWorkout?.targets?.[exercise.id] : null
 
   useEffect(() => {
     if (!activeWorkout) return undefined
@@ -34,9 +36,9 @@ export default function ActiveSession() {
   useEffect(() => {
     if (!exercise) return
     const previous = sets.find((item) => item.exercise_id === exercise.id)
-    setWeight(previous ? Number(previous.weight) : exercise.is_bodyweight ? 0 : 20)
-    setReps(previous ? Number(previous.reps) : exercise.unit === 'seconds' ? 30 : 8)
-  }, [exercise, sets])
+    setWeight(target?.weight != null ? Number(target.weight) : previous ? Number(previous.weight) : exercise.is_bodyweight ? 0 : 20)
+    setReps(target?.repsMin ? Number(target.repsMin) : previous ? Number(previous.reps) : exercise.unit === 'seconds' ? 30 : 8)
+  }, [exercise, sets, target?.repsMin, target?.weight])
 
   useEffect(() => {
     if (!loading && !activeWorkout) navigate('/start', { replace: true })
@@ -60,7 +62,11 @@ export default function ActiveSession() {
 
   const finish = async () => {
     setBusy(true)
-    try { await endWorkout(false, notes); navigate('/', { replace: true }) } finally { setBusy(false) }
+    try {
+      const sessionId = await endWorkout(false, notes)
+      if (shareWithFriends) await shareProgress(sessionId, notes)
+      navigate(shareWithFriends ? '/social' : '/', { replace: true })
+    } finally { setBusy(false) }
   }
   const cancel = async () => {
     if (!window.confirm('Cancel this workout? All sets logged in this session will be removed.')) return
@@ -87,6 +93,8 @@ export default function ActiveSession() {
       </div>
       <div className="exercise-dots">{sessionExercises.map((item, index) => <button key={item.id} aria-label={`Go to ${item.name}`} className={`${index === exerciseIndex ? 'active' : ''} ${sessionSets.some((set) => set.exercise_id === item.id) ? 'complete' : ''}`} onClick={() => setExerciseIndex(index)} />)}</div>
 
+      {target && <div className="planned-target glass-card"><Target /><span><small>Planned target</small><strong>{target.targetSets} sets × {target.repsMin}{target.repsMax !== target.repsMin ? `–${target.repsMax}` : ''} {exercise.unit === 'seconds' ? 'sec' : 'reps'}{target.weight != null ? ` at ${target.weight} ${exercise.unit}` : ''}</strong>{target.notes && <em>{target.notes}</em>}</span><small>{target.restSeconds}s rest</small></div>}
+
       <section className="logging-panel glass-card">
         <Stepper label={exercise.is_bodyweight ? 'Added weight' : 'Weight'} value={weight} onChange={setWeight} step={exercise.unit === 'lb' ? 5 : 2.5} min={0} suffix={exercise.unit === 'reps' || exercise.unit === 'seconds' ? 'kg' : exercise.unit} decimals={1} />
         <div className="stepper-divider" />
@@ -108,7 +116,7 @@ export default function ActiveSession() {
         <button className="primary-button" onClick={() => setShowFinish(true)}><Dumbbell /> Finish workout</button>
       </div>
 
-      {showFinish && <Modal title="Complete this workout?" onClose={() => setShowFinish(false)} footer={<><button className="secondary-button" onClick={() => setShowFinish(false)}>Keep training</button><button className="primary-button compact" disabled={busy} onClick={finish}>{busy ? 'Saving…' : 'Finish'} <Check /></button></>}><div className="finish-summary"><Flame /><div><strong>{sessionSets.length} sets · {Math.round(totalVolume).toLocaleString()} kg</strong><p>Nice work. Add an optional note before saving this session.</p></div></div><label>Session notes<textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="How did it feel?" rows="3" /></label></Modal>}
+      {showFinish && <Modal title="Complete this workout?" onClose={() => setShowFinish(false)} footer={<><button className="secondary-button" onClick={() => setShowFinish(false)}>Keep training</button><button className="primary-button compact" disabled={busy} onClick={finish}>{busy ? 'Saving…' : 'Finish'} <Check /></button></>}><div className="finish-summary"><Flame /><div><strong>{sessionSets.length} sets · {Math.round(totalVolume).toLocaleString()} kg</strong><p>Nice work. Add an optional note before saving this session.</p></div></div><label>Session notes<textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="How did it feel?" rows="3" /></label><label className="checkbox-label share-workout"><input type="checkbox" checked={shareWithFriends} onChange={(event) => setShareWithFriends(event.target.checked)} /><Users /><span><strong>Share a progress summary</strong><small>Your friends see exercise names and totals, never your individual sets.</small></span></label></Modal>}
     </main>
   )
 }

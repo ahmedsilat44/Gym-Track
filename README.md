@@ -1,6 +1,6 @@
 # Velocity Performance
 
-A mobile-first workout tracker built from the supplied Velocity Performance UI studies. It supports editable workout categories and exercises, live set logging, personal records, history, analytics, CSV export, Supabase authentication, and installable PWA behavior.
+A mobile-first workout tracker built from the supplied Velocity Performance UI studies. It supports fixed weekly workout plans, target-aware live logging, friend connections, routine and progress sharing, personal records, analytics, Supabase authentication, and installable PWA behavior.
 
 ## Run locally
 
@@ -16,14 +16,15 @@ Without Supabase environment variables the app starts in persistent local demo m
 
 1. Create a Supabase project.
 2. Run [`supabase/schema.sql`](supabase/schema.sql) in the SQL editor.
-3. Put the project URL and public anon key in `.env.local`:
+3. Run each file in [`supabase/migrations`](supabase/migrations) in filename order.
+4. Put the project URL and public anon key in `.env.local`:
 
 ```env
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-The schema enables row-level security for every user-owned table and seeds the editable Push/Pull/Legs/Core library when a user signs up.
+The schema enables row-level security for workout data. The planner/social migration adds profiles, friend requests, friends-only feed posts, shared routines, likes, and comments with their own row-level policies. Detailed sets remain private; progress is shared only as an opt-in summary.
 
 ## Publish with GitHub Pages
 

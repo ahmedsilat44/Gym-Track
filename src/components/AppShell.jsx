@@ -1,11 +1,12 @@
-import { Dumbbell, Gauge, House, Settings, Sparkles } from 'lucide-react'
+import { CalendarDays, Dumbbell, Gauge, House, Settings, Users } from 'lucide-react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 
 const navItems = [
   ['/', House, 'Home'],
-  ['/discover', Sparkles, 'Discover'],
+  ['/planner', CalendarDays, 'Planner'],
+  ['/social', Users, 'Social'],
   ['/progress', Gauge, 'Progress'],
   ['/settings', Settings, 'Settings'],
 ]

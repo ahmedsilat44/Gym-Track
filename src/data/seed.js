@@ -63,6 +63,23 @@ export function createDemoData() {
     return { id, session_id, exercise_id, set_number, reps, weight, is_pr: [1, 5, 7, 8].includes(index), created_at: session.started_at }
   })
 
+  const routineDays = [
+    { id: 'routine-day-push', user_id: 'demo-user', routine_id: 'routine-demo', name: 'Push strength', weekday: 1, sort_order: 0 },
+    { id: 'routine-day-pull', user_id: 'demo-user', routine_id: 'routine-demo', name: 'Pull strength', weekday: 3, sort_order: 1 },
+    { id: 'routine-day-legs', user_id: 'demo-user', routine_id: 'routine-demo', name: 'Leg day', weekday: 5, sort_order: 2 },
+  ]
+  const routineExercises = [
+    ['plan-bench', 'routine-day-push', 'ex-bench', 'Barbell Bench Press', 4, 6, 8, 80],
+    ['plan-ohp', 'routine-day-push', 'ex-ohp', 'Overhead Press', 3, 8, 10, 45],
+    ['plan-row', 'routine-day-pull', 'ex-row', 'Barbell Row', 4, 6, 8, 70],
+    ['plan-pulldown', 'routine-day-pull', 'ex-pulldown', 'Lat Pulldown', 3, 10, 12, 55],
+    ['plan-squat', 'routine-day-legs', 'ex-squat', 'Back Squat', 4, 5, 6, 110],
+    ['plan-rdl', 'routine-day-legs', 'ex-rdl', 'Romanian Deadlift', 3, 8, 10, 85],
+  ].map(([id, routine_day_id, exercise_id, exercise_name, target_sets, target_reps_min, target_reps_max, target_weight], sort_order) => ({
+    id, user_id: 'demo-user', routine_day_id, exercise_id, exercise_name, unit: 'kg',
+    target_sets, target_reps_min, target_reps_max, target_weight, rest_seconds: 90, notes: '', sort_order,
+  }))
+
   return {
     categories: defaultCategories,
     exercises: defaultExercises,
@@ -70,5 +87,16 @@ export function createDemoData() {
     sets,
     sessionExercises: [],
     preferences: { unit: 'kg', display_name: 'Athlete' },
+    profiles: [
+      { id: 'demo-user', username: 'athlete', display_name: 'Athlete', bio: 'Building strength one session at a time.' },
+      { id: 'demo-friend', username: 'sara_lifts', display_name: 'Sara', bio: 'Powerlifting and good playlists.' },
+    ],
+    friendships: [{ id: 'demo-friendship', requester_id: 'demo-friend', addressee_id: 'demo-user', status: 'accepted', created_at: isoDaysAgo(30), accepted_at: isoDaysAgo(29) }],
+    routines: [{ id: 'routine-demo', user_id: 'demo-user', name: '3-Day Strength', description: 'A fixed Monday, Wednesday, Friday strength plan.', is_shared: false, updated_at: new Date().toISOString() }],
+    routineDays,
+    routineExercises,
+    feedPosts: [{ id: 'demo-post', user_id: 'demo-friend', post_type: 'workout', caption: 'Deadlifts felt strong today!', visibility: 'friends', routine_id: null, metadata: { category_name: 'Pull', set_count: 12, exercise_count: 4, exercise_names: ['Deadlift', 'Barbell Row', 'Lat Pulldown'], total_volume: 4820, pr_count: 1 }, created_at: isoDaysAgo(1, 20) }],
+    postLikes: [],
+    postComments: [],
   }
 }

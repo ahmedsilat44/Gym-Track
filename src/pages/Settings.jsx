@@ -8,7 +8,7 @@ const tabs = [['profile', UserRound, 'Profile'], ['categories', FolderCog, 'Cate
 
 export default function Settings() {
   const { user, isDemo, signOut } = useAuth()
-  const { categories, exercises, sessions, sets, preferences, addCategory, updateCategory, moveCategory, archiveCategory, saveExercise, archiveExercise, updatePreferences, resetDemo } = useData()
+  const { categories, exercises, sessions, sets, preferences, profiles, addCategory, updateCategory, moveCategory, archiveCategory, saveExercise, archiveExercise, saveProfile, resetDemo } = useData()
   const [tab, setTab] = useState('profile')
   const [notice, setNotice] = useState('')
   const [newCategory, setNewCategory] = useState('')
@@ -17,6 +17,7 @@ export default function Settings() {
   const [exerciseForm, setExerciseForm] = useState(null)
   const [query, setQuery] = useState('')
   const activeCategories = categories.filter((item) => !item.is_archived).sort((a, b) => a.sort_order - b.sort_order)
+  const socialProfile = profiles.find((item) => item.id === user.id)
   const activeExercises = useMemo(() => exercises.filter((item) => !item.is_archived && item.name.toLowerCase().includes(query.toLowerCase())), [exercises, query])
 
   const perform = async (action, message) => {
@@ -59,12 +60,14 @@ export default function Settings() {
       <div className="settings-tabs" role="tablist">{tabs.map(([id, Icon, label]) => <button role="tab" aria-selected={tab === id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)} key={id}><Icon /><span>{label}</span></button>)}</div>
 
       {tab === 'profile' && <section className="settings-panel">
-        <div className="settings-title"><span className="eyebrow">Athlete preferences</span><h2>Profile & units</h2><p>Personalize how your workouts and measurements appear.</p></div>
-        <form className="glass-card settings-form" onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); perform(() => updatePreferences({ display_name: form.get('display_name'), unit: form.get('unit') }), 'Preferences saved.') }}>
+        <div className="settings-title"><span className="eyebrow">Athlete preferences</span><h2>Profile & units</h2><p>Personalize your training and choose how friends find you on the social board.</p></div>
+        <form className="glass-card settings-form" onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); perform(() => saveProfile({ display_name: form.get('display_name'), username: form.get('username'), bio: form.get('bio'), unit: form.get('unit') }), 'Profile saved.') }}>
           <label>Display name<input name="display_name" defaultValue={preferences.display_name || user.user_metadata?.display_name || ''} /></label>
+          <label>Username<input name="username" required minLength="3" maxLength="30" pattern="[a-z0-9_]+" defaultValue={socialProfile?.username || ''} placeholder="your_username" /></label>
           <label>Default weight unit<select name="unit" defaultValue={preferences.unit || 'kg'}><option value="kg">Kilograms (kg)</option><option value="lb">Pounds (lb)</option></select></label>
-          <div className="form-note">Changing this affects new exercises. Existing exercise units remain unchanged so historical data stays accurate.</div>
-          <button className="primary-button compact">Save preferences <Check /></button>
+          <label className="profile-bio">Social bio<textarea name="bio" maxLength="240" rows="3" defaultValue={socialProfile?.bio || ''} placeholder="Tell your training circle what you are working on." /></label>
+          <div className="form-note">Your name, username, and bio are discoverable to signed-in athletes. Workout history stays private unless you share a summary.</div>
+          <button className="primary-button compact">Save profile <Check /></button>
         </form>
         <div className="glass-card account-row"><span className="avatar small">{(preferences.display_name || user.email).slice(0, 2).toUpperCase()}</span><span><strong>{user.email}</strong><small>{isDemo ? 'Local demo athlete' : 'Supabase account'}</small></span>{!isDemo && <button className="danger-button" onClick={signOut}><LogOut /> Sign out</button>}</div>
       </section>}

@@ -12,6 +12,8 @@ const ActiveSession = lazy(() => import('./pages/ActiveSession'))
 const Progress = lazy(() => import('./pages/Progress'))
 const ExerciseHistory = lazy(() => import('./pages/ExerciseHistory'))
 const Settings = lazy(() => import('./pages/Settings'))
+const Planner = lazy(() => import('./pages/Planner'))
+const Social = lazy(() => import('./pages/Social'))
 
 function LoadingScreen() {
   return (
@@ -37,6 +39,8 @@ function ProtectedApp() {
             <Route path="/start" element={<StartWorkout />} />
             <Route path="/session" element={<ActiveSession />} />
             <Route path="/progress" element={<Progress />} />
+            <Route path="/planner" element={<Planner />} />
+            <Route path="/social" element={<Social />} />
             <Route path="/exercise/:exerciseId" element={<ExerciseHistory />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<Navigate to="/" replace />} />
