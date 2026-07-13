@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Fitness App - Discover</title>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&amp;family=Inter:wght@400;500&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#171f33",
+                        "tertiary": "#d5d7ff",
+                        "secondary-fixed": "#ffdadc",
+                        "tertiary-fixed-dim": "#bdc2ff",
+                        "surface-tint": "#3cddc7",
+                        "inverse-primary": "#006b5f",
+                        "background": "#0b1326",
+                        "outline-variant": "#3c4a46",
+                        "outline": "#859490",
+                        "error-container": "#93000a",
+                        "secondary-fixed-dim": "#ffb2b9",
+                        "on-tertiary-fixed-variant": "#2f3aa3",
+                        "on-primary": "#003731",
+                        "surface-container-lowest": "#060e20",
+                        "primary-container": "#2dd4bf",
+                        "on-background": "#dae2fd",
+                        "secondary-container": "#891933",
+                        "on-tertiary": "#131e8c",
+                        "surface": "#0b1326",
+                        "surface-container-low": "#131b2e",
+                        "on-primary-fixed-variant": "#005047",
+                        "surface-dim": "#0b1326",
+                        "on-tertiary-container": "#3641a9",
+                        "on-primary-container": "#00574d",
+                        "error": "#ffb4ab",
+                        "on-tertiary-fixed": "#000767",
+                        "on-error-container": "#ffdad6",
+                        "primary-fixed": "#62fae3",
+                        "on-surface": "#dae2fd",
+                        "on-primary-fixed": "#00201c",
+                        "primary": "#57f1db",
+                        "on-secondary-fixed": "#400010",
+                        "surface-container-high": "#222a3d",
+                        "inverse-surface": "#dae2fd",
+                        "inverse-on-surface": "#283044",
+                        "secondary": "#ffb2b9",
+                        "surface-container-highest": "#2d3449",
+                        "surface-variant": "#2d3449",
+                        "on-secondary": "#67001f",
+                        "on-error": "#690005",
+                        "on-secondary-container": "#ff97a3",
+                        "surface-bright": "#31394d",
+                        "on-secondary-fixed-variant": "#891933",
+                        "tertiary-fixed": "#e0e0ff",
+                        "on-surface-variant": "#bacac5",
+                        "primary-fixed-dim": "#3cddc7",
+                        "tertiary-container": "#b3b9ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "margin-mobile": "20px",
+                        "sm": "8px",
+                        "xl": "32px",
+                        "margin-desktop": "40px",
+                        "md": "16px",
+                        "base": "4px",
+                        "xs": "4px",
+                        "lg": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-lg-mobile": ["Hanken Grotesk"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-sm": ["JetBrains Mono"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "label-md": ["JetBrains Mono"],
+                        "display-lg": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .glass-card {
+            background: rgba(23, 31, 51, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(133, 148, 144, 0.1);
+        }
+        .active-dot::after {
+            content: '';
+            display: block;
+            width: 4px;
+            height: 4px;
+            background-color: #57f1db;
+            border-radius: 50%;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen font-body-md selection:bg-primary/30">
+<!-- Top App Bar -->
+<header class="sticky top-0 z-50 bg-background/80 backdrop-blur-lg flex justify-between items-center w-full px-margin-mobile py-sm">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary/20">
+<img class="w-full h-full object-cover" data-alt="A professional studio portrait of a young male athlete with short hair, wearing a sleek black performance training shirt. The lighting is dramatic and directional, casting subtle shadows to emphasize muscle definition. The background is a clean, neutral grey, creating a focused and disciplined athletic aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDYFGFOx21dN-cXxAADc8iWg6hIsO-dIjC7fZ1XMBoH75B3fR2ITD4eeIECLGQrWUHY-lcl0GgzDwff4k7n_8xXYGYug-f-sU3WCbj3cIOFShuojhko_3rROpkFv_mJn_mXKGy7ueeJeyb8PE9ANUjFCWuA1F78otMqP4vWMkzihZOA695Fu4McdMSbmfpbs1r9GCj4UzP7uCUr44jygfhyh94-OE20q2RFVORGCaxEby-HdqapuWWYw"/>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-outline">Welcome Back</p>
+<p class="font-headline-md text-headline-md font-bold text-on-background">Nicolas Doflamingo !</p>
+</div>
+</div>
+<div class="relative hover:opacity-80 transition-opacity cursor-pointer active:scale-95">
+<span class="material-symbols-outlined text-primary text-2xl">notifications</span>
+<span class="absolute -top-1 -right-1 bg-secondary text-on-secondary text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-background">9+</span>
+</div>
+</header>
+<main class="pb-24 pt-4 px-margin-mobile">
+<!-- Main Title -->
+<section class="mb-xl">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-background">Discover</h1>
+</section>
+<!-- Popular Exercises Section -->
+<section class="mb-xl">
+<div class="flex justify-between items-center mb-md">
+<h2 class="font-headline-md text-headline-md">Popular Exercises</h2>
+<button class="text-primary font-label-md text-label-md flex items-center gap-1 hover:underline">
+                    See more <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+<div class="flex gap-md overflow-x-auto no-scrollbar pb-2">
+<!-- Home Workout Card -->
+<div class="flex-shrink-0 w-64 h-48 rounded-xl relative overflow-hidden group cursor-pointer">
+<div class="absolute inset-0 bg-gradient-to-br from-secondary-container to-background/20 z-10 opacity-90 group-hover:opacity-100 transition-opacity"></div>
+<img class="absolute inset-0 w-full h-full object-cover grayscale mix-blend-overlay" data-alt="A dynamic action shot of a fit woman performing a high-intensity mountain climber exercise in a high-end minimalist home gym. The lighting is cool-toned with sharp highlights on her form. The overall style is high-octane and energetic, capturing a moment of intense athletic focus." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAk2oVfMV2p3_PRMHMRyFXGnSxU0DzILNlEWJTye08e4UJC9zfUvO2Ws3i8YkdMyzhOeY7CD89DQNxbTpAssUiTzR35Bp6Wo6oG_2TBc8qK6VVznvhXAtlQkUswYcrCULVbBexYFykTX3jIhfEy502NgrBk6kEWk7hLzy6z9y50CATYUSp_NfO1EDFXtNujivTERSZPeIW0v4N3f0nn5ZJwCKn4VlPXg5JM0s5h_rh3SBGfyVZ95yN6Pw"/>
+<div class="relative z-20 p-md h-full flex flex-col justify-between">
+<div>
+<h3 class="font-headline-md text-headline-md text-white">Home Workout</h3>
+<p class="font-label-sm text-label-sm text-white/70">12 Exercise</p>
+</div>
+<div class="flex items-center gap-1 bg-black/30 backdrop-blur-md w-fit px-2 py-1 rounded-lg border border-white/10">
+<span class="material-symbols-outlined text-secondary text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-sm text-label-sm text-white">4.9</span>
+</div>
+</div>
+</div>
+<!-- Hand Exercise Card -->
+<div class="flex-shrink-0 w-64 h-48 rounded-xl relative overflow-hidden group cursor-pointer">
+<div class="absolute inset-0 bg-gradient-to-br from-surface-container-highest to-background/40 z-10 opacity-90 group-hover:opacity-100 transition-opacity"></div>
+<img class="absolute inset-0 w-full h-full object-cover grayscale mix-blend-overlay" data-alt="Close up shot of a muscular male hand gripping a heavy chrome dumbbell in a dark, atmospheric weight room. Vibrant teal accent lighting catches the metallic edges and highlights the vascularity and strength of the hand. The mood is disciplined and technologically superior, reminiscent of pro-athlete training." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBoTglh1U4hCNeL5f5ZVUCjEOi_qleuHNgmbYIxsORABDQDSk-d6iEs0BbutnIJCK4oDaKjIekY-6M-R59kcfXnARsZTj2az3dsQYFym5AcLobwMAUXeNBl-xAUY0isUCUG9lLZ222VU9BaoJOwpLNQJ3D4JseQNzrTuAcTc87FCQIpWdR1rnohnlgPrYDXmh53DxaEv3WsPmVipW6n1UqBjJLG9eO_7OiowvgBBqxrlqU93snKJYCNyQ"/>
+<div class="relative z-20 p-md h-full flex flex-col justify-between">
+<div>
+<h3 class="font-headline-md text-headline-md text-white">Hand Exercise</h3>
+<p class="font-label-sm text-label-sm text-white/70">12 Exercise</p>
+</div>
+<div class="flex items-center gap-1 bg-black/30 backdrop-blur-md w-fit px-2 py-1 rounded-lg border border-white/10">
+<span class="material-symbols-outlined text-secondary text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-sm text-label-sm text-white">4.9</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Our Collection Section -->
+<section>
+<div class="flex justify-between items-center mb-md">
+<h2 class="font-headline-md text-headline-md">Our Collection</h2>
+</div>
+<div class="space-y-md">
+<!-- Chest & Abdominal -->
+<div class="relative w-full h-32 rounded-xl glass-card overflow-hidden group cursor-pointer">
+<div class="absolute right-0 top-0 h-full w-1/2 z-0">
+<div class="absolute inset-0 bg-gradient-to-l from-transparent via-surface-container to-surface-container z-10"></div>
+<img class="w-full h-full object-cover" data-alt="Cinematic studio shot focusing on the powerful torso and defined abdominal muscles of an athlete. Warm, amber-toned lighting creates deep contrast and highlights the texture of the skin and muscle structure. A subtle golden glow emanates from behind the subject, giving a premium, high-end fitness magazine feel." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEPWsimp_isxnJo1vVrM9J3Ll0jQdhp1VcHzFCiZyEicfrYpNiEdRNbP8vtwtJ7k-SFdFPmvvUyp4vEDW4WLMP4rObzGiz8jEPukp6iuqIuRu8eERhVLL4xord4DF8quf53fKuHBItijoQUTKgyliKQJL0kIwK_TAVgo35mEINEzS8K3XHDTXpfH-WVzG-IlxEAOFGVGuJmjXx35zz0rduCxfuxadvNVRsgljulZG1UGdvVQKKSl79uA"/>
+</div>
+<div class="relative z-20 p-md h-full flex flex-col justify-center max-w-[60%]">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-1 leading-tight">Chest &amp; abdominal exercises</h3>
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-lg">fitness_center</span>
+</div>
+<p class="font-label-sm text-label-sm text-outline">12 Exercise</p>
+</div>
+</div>
+</div>
+<!-- Back & Shoulder -->
+<div class="relative w-full h-32 rounded-xl glass-card overflow-hidden group cursor-pointer">
+<div class="absolute right-0 top-0 h-full w-1/2 z-0">
+<div class="absolute inset-0 bg-gradient-to-l from-transparent via-surface-container to-surface-container z-10"></div>
+<img class="w-full h-full object-cover" data-alt="A back-view perspective of a female athlete performing a lat pull-down. The lighting is focused on the definition of the shoulder and back muscles, using a cool blue and violet color palette. The style is sleek and technical, reflecting high-performance biometric data tracking aesthetics." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCbfuxxDa025nM8jMn7h7JJ9UgGgxBDVWcjXZxPvHWlMaHESJWyM4t6eah7tn0VB6zgC1hq60gqXCeutsxGedQa_vGJ4JsLVuJmjfrSI47m6ywIYhM2a4PvWfFhMtyYnd4WgtTKnBet3gq75MKxDYIWg4Wv27GY09gZUM7pKgiMyfG54XmuWrJlfOXMDr7qeUT2nfSOXjCk2nSHT6sRoJ565mxox_ou6PJ4zxsq355xS7FFmy90dgB7NA"/>
+</div>
+<div class="relative z-20 p-md h-full flex flex-col justify-center max-w-[60%]">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-1 leading-tight">Back &amp; shoulder exercises</h3>
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-tertiary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary text-lg">exercise</span>
+</div>
+<p class="font-label-sm text-label-sm text-outline">12 Exercise</p>
+</div>
+</div>
+</div>
+<!-- Leg Muscle (Bonus for completeness) -->
+<div class="relative w-full h-32 rounded-xl glass-card overflow-hidden group cursor-pointer">
+<div class="absolute right-0 top-0 h-full w-1/2 z-0">
+<div class="absolute inset-0 bg-gradient-to-l from-transparent via-surface-container to-surface-container z-10"></div>
+<img class="w-full h-full object-cover" data-alt="Intense close-up of an athlete's legs mid-sprint on a dark track. Low-angle lighting catches the definition of the quadriceps and calves. The background is blurred with motion, punctuated by vibrant teal light trails to suggest speed and momentum. High-octane athletic power aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8MsR2qyvdvNXtPKpIBdjbUIuiPzevGiKyuvptNpdwi8PdO_Qgtbhb40Vb7u41stDrG7V_rw_78pBCZupmk_Qf0Wo0hAfTjqh9D0sDubRqUPkaBu1LPtXn-7PqYhadkG86HXNFOiS4OgFbYZhHE1t87EzMDJyEwUbKWC3omv8RtgEhOGC4QarGzKtFthp6WJRofvwMg51PAzYXg6qcrM6Jt3VcKyJTZLYyDx_aPm8ihdEAX4HcZupQYg"/>
+</div>
+<div class="relative z-20 p-md h-full flex flex-col justify-center max-w-[60%]">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-1 leading-tight">Leg &amp; glute exercises</h3>
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-lg">directions_run</span>
+</div>
+<p class="font-label-sm text-label-sm text-outline">15 Exercise</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Nav Bar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center h-16 px-4 pb-safe bg-surface-container/70 backdrop-blur-xl rounded-t-xl z-50 border-t border-outline-variant/10 shadow-lg">
+<div class="flex flex-col items-center justify-center text-outline dark:text-outline hover:text-primary-fixed-dim transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-2xl group-active:scale-90 transition-transform duration-200" data-icon="home">home</span>
+</div>
+<div class="flex flex-col items-center justify-center text-primary dark:text-primary active-dot transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-2xl active:scale-90 transition-transform duration-200" data-icon="explore" style="font-variation-settings: 'FILL' 1;">explore</span>
+</div>
+<div class="flex flex-col items-center justify-center text-outline dark:text-outline hover:text-primary-fixed-dim transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-2xl group-active:scale-90 transition-transform duration-200" data-icon="monitoring">monitoring</span>
+</div>
+<div class="flex flex-col items-center justify-center text-outline dark:text-outline hover:text-primary-fixed-dim transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-2xl group-active:scale-90 transition-transform duration-200" data-icon="settings">settings</span>
+</div>
+</nav>
+<script>
+        // Micro-interactions and subtle glow tracking
+        document.querySelectorAll('.glass-card').forEach(card => {
+            card.addEventListener('mousemove', e => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                card.style.setProperty('--mouse-x', `${x}px`);
+                card.style.setProperty('--mouse-y', `${y}px`);
+            });
+        });
+    </script>
+</body></html>

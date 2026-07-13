@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Fitness Performance Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700;800&amp;family=Inter:wght@400&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#171f33",
+                        "tertiary": "#d5d7ff",
+                        "secondary-fixed": "#ffdadc",
+                        "tertiary-fixed-dim": "#bdc2ff",
+                        "surface-tint": "#3cddc7",
+                        "inverse-primary": "#006b5f",
+                        "background": "#0b1326",
+                        "outline-variant": "#3c4a46",
+                        "outline": "#859490",
+                        "error-container": "#93000a",
+                        "secondary-fixed-dim": "#ffb2b9",
+                        "on-tertiary-fixed-variant": "#2f3aa3",
+                        "on-primary": "#003731",
+                        "surface-container-lowest": "#060e20",
+                        "primary-container": "#2dd4bf",
+                        "on-background": "#dae2fd",
+                        "secondary-container": "#891933",
+                        "on-tertiary": "#131e8c",
+                        "surface": "#0b1326",
+                        "surface-container-low": "#131b2e",
+                        "on-primary-fixed-variant": "#005047",
+                        "surface-dim": "#0b1326",
+                        "on-tertiary-container": "#3641a9",
+                        "on-primary-container": "#00574d",
+                        "error": "#ffb4ab",
+                        "on-tertiary-fixed": "#000767",
+                        "on-error-container": "#ffdad6",
+                        "primary-fixed": "#62fae3",
+                        "on-surface": "#dae2fd",
+                        "on-primary-fixed": "#00201c",
+                        "primary": "#57f1db",
+                        "on-secondary-fixed": "#400010",
+                        "surface-container-high": "#222a3d",
+                        "inverse-surface": "#dae2fd",
+                        "inverse-on-surface": "#283044",
+                        "secondary": "#ffb2b9",
+                        "surface-container-highest": "#2d3449",
+                        "surface-variant": "#2d3449",
+                        "on-secondary": "#67001f",
+                        "on-error": "#690005",
+                        "on-secondary-container": "#ff97a3",
+                        "surface-bright": "#31394d",
+                        "on-secondary-fixed-variant": "#891933",
+                        "tertiary-fixed": "#e0e0ff",
+                        "on-surface-variant": "#bacac5",
+                        "primary-fixed-dim": "#3cddc7",
+                        "tertiary-container": "#b3b9ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "margin-mobile": "20px",
+                        "sm": "8px",
+                        "xl": "32px",
+                        "margin-desktop": "40px",
+                        "md": "16px",
+                        "base": "4px",
+                        "xs": "4px",
+                        "lg": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-lg-mobile": ["Hanken Grotesk"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-sm": ["JetBrains Mono"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "label-md": ["JetBrains Mono"],
+                        "display-lg": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #0b1326;
+            color: #dae2fd;
+            -webkit-font-smoothing: antialiased;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+        .glow-teal {
+            box-shadow: 0 0 15px rgba(87, 241, 219, 0.2);
+        }
+        @keyframes rotate-ring {
+            from { stroke-dashoffset: 283; }
+            to { stroke-dashoffset: 99; } /* 65% of 283 is ~184, so offset is ~99 */
+        }
+        .animate-ring {
+            animation: rotate-ring 1.5s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="font-body-md text-body-md selection:bg-primary-container selection:text-on-primary-container">
+<!-- Top Navigation Shell -->
+<header class="bg-background/80 dark:bg-background/80 flex justify-between items-center w-full px-margin-mobile py-sm sticky top-0 z-50 backdrop-blur-md">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary/20">
+<img class="w-full h-full object-cover" data-alt="A professional close-up portrait of a young man named Nicolas, with short dark hair and a confident expression, set against a sleek, dark architectural background. High-end lighting creates sharp shadows and professional gym-focused atmosphere with deep charcoal tones and a hint of teal accent." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_IDLYSGl_AgH684aA4SwLHoW5dtDRNgSd8aNOQlZi0ZLPiviwbPpsjRwtQuY__Cpprb5Sfe_B8VooOoaDd2HQfiLpqvBZKJrBt59nTE6beKM0aLbCOocZMYvFMHxyjreipRIr-1G9k-aBECFfLBR3_a5DWtQd51HDMO7P9j3Oe9zBlG4A4pUfdo47gCLKc4uCTDKmxraGckQ8PsnM4apG_DFW5mGdSTqJ0egNfeyQ3vu8dl4ynkqTGw"/>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-outline">Welcome Back</p>
+<h1 class="font-headline-md text-headline-md font-bold text-on-background dark:text-on-background">Nicolas Doflamingo ! 🤘</h1>
+</div>
+</div>
+<button class="relative w-10 h-10 flex items-center justify-center rounded-full bg-surface-container hover:opacity-80 transition-opacity active:scale-95">
+<span class="material-symbols-outlined text-primary">notifications</span>
+<span class="absolute top-1 right-1 w-4 h-4 bg-secondary text-[10px] flex items-center justify-center rounded-full text-on-secondary font-bold">9+</span>
+</button>
+</header>
+<main class="px-margin-mobile pb-24 max-w-xl mx-auto space-y-xl mt-md">
+<!-- Workout Progress Card (Level 2 Elevation) -->
+<section class="glass-card rounded-xl p-lg relative overflow-hidden glow-teal">
+<div class="flex justify-between items-center relative z-10">
+<div class="space-y-1">
+<h2 class="font-headline-md text-headline-md text-on-surface">Workout Progress</h2>
+<p class="font-label-md text-label-md text-outline">12 Exercise left</p>
+</div>
+<div class="relative w-20 h-20">
+<svg class="w-full h-full transform -rotate-90">
+<circle class="text-surface-container-highest" cx="40" cy="40" fill="transparent" r="36" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-primary animate-ring" cx="40" cy="40" fill="transparent" r="36" stroke="currentColor" stroke-dasharray="226" stroke-dashoffset="79" stroke-linecap="round" stroke-width="8"></circle>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="font-label-md text-label-md font-bold text-primary">65%</span>
+</div>
+</div>
+</div>
+<!-- Decorative background elements -->
+<div class="absolute -bottom-4 -right-4 w-32 h-32 bg-primary/10 blur-3xl rounded-full"></div>
+</section>
+<!-- Today's Activity Section -->
+<section class="space-y-md">
+<div class="flex justify-between items-end">
+<h3 class="font-headline-md text-headline-md">Today's Activity</h3>
+<button class="font-label-md text-label-md text-primary flex items-center gap-1 hover:opacity-80 transition-opacity">
+                    Edit <span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+</div>
+<div class="grid grid-cols-1 gap-md">
+<!-- Calories Feature Card -->
+<div class="glass-card rounded-xl p-md flex items-center gap-lg">
+<div class="w-16 h-24 bg-secondary-container rounded-lg flex flex-col items-center justify-center gap-sm relative overflow-hidden">
+<span class="material-symbols-outlined text-on-secondary-container">fitness_center</span>
+<div class="text-center">
+<p class="font-label-sm text-label-sm text-on-secondary-container/80">1.350</p>
+<p class="font-label-sm text-[10px] text-on-secondary-container/60">Calories</p>
+</div>
+<div class="absolute bottom-0 w-full h-1/3 bg-gradient-to-t from-black/20 to-transparent"></div>
+</div>
+<div class="flex-1 space-y-sm">
+<!-- Activity Rows -->
+<div class="flex justify-between items-start">
+<div class="flex items-start gap-2">
+<div class="w-1.5 h-1.5 rounded-full bg-orange-400 mt-2"></div>
+<div>
+<p class="font-body-md font-bold">Push-ups</p>
+<p class="font-label-sm text-outline">Biceps, triceps, shoulders</p>
+</div>
+</div>
+<p class="font-label-md font-bold">15 <span class="text-outline">X3</span></p>
+</div>
+<div class="flex justify-between items-start">
+<div class="flex items-start gap-2">
+<div class="w-1.5 h-1.5 rounded-full bg-primary mt-2"></div>
+<div>
+<p class="font-body-md font-bold">Squads</p>
+<p class="font-label-sm text-outline">calves, legs, thighs</p>
+</div>
+</div>
+<p class="font-label-md font-bold">25 <span class="text-outline">X3</span></p>
+</div>
+<div class="flex justify-between items-start">
+<div class="flex items-start gap-2">
+<div class="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2"></div>
+<div>
+<p class="font-body-md font-bold">Lunges</p>
+<p class="font-label-sm text-outline">calves, hamstrings, glutes</p>
+</div>
+</div>
+<p class="font-label-md font-bold">15 <span class="text-outline">X3</span></p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Overall Status Section -->
+<section class="space-y-md">
+<div class="flex justify-between items-end">
+<h3 class="font-headline-md text-headline-md">Overall Status</h3>
+<button class="font-label-md text-label-md text-primary flex items-center gap-1 hover:opacity-80">
+                    See more <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+<div class="space-y-sm">
+<!-- Status Row 1 -->
+<div class="glass-card rounded-xl p-md flex items-center justify-between">
+<div class="flex items-center gap-md">
+<div class="w-12 h-12 rounded-lg bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-orange-400" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+</div>
+<div>
+<p class="font-label-sm text-outline">Calories Loss</p>
+<div class="flex items-center gap-2">
+<p class="font-headline-md text-on-surface">12.182 Kcal</p>
+<span class="text-[12px] text-primary bg-primary/10 px-1 rounded font-bold">+2,8%</span>
+</div>
+</div>
+</div>
+<div class="w-10 h-10 relative">
+<svg class="w-full h-full transform -rotate-90">
+<circle class="text-surface-container-highest" cx="20" cy="20" fill="transparent" r="16" stroke="currentColor" stroke-width="3"></circle>
+<circle class="text-primary" cx="20" cy="20" fill="transparent" r="16" stroke="currentColor" stroke-dasharray="100" stroke-dashoffset="63" stroke-linecap="round" stroke-width="3"></circle>
+</svg>
+<span class="absolute inset-0 flex items-center justify-center text-[10px] font-bold">37%</span>
+</div>
+</div>
+<!-- Status Row 2 -->
+<div class="glass-card rounded-xl p-md flex items-center justify-between">
+<div class="flex items-center gap-md">
+<div class="w-12 h-12 rounded-lg bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">monitor_weight</span>
+</div>
+<div>
+<p class="font-label-sm text-outline">Weight Loss</p>
+<div class="flex items-center gap-2">
+<p class="font-headline-md text-on-surface">10.7 Kg</p>
+<span class="text-[12px] text-primary bg-primary/10 px-1 rounded font-bold">+2,8%</span>
+</div>
+</div>
+</div>
+<div class="w-10 h-10 relative">
+<svg class="w-full h-full transform -rotate-90">
+<circle class="text-surface-container-highest" cx="20" cy="20" fill="transparent" r="16" stroke="currentColor" stroke-width="3"></circle>
+<circle class="text-primary" cx="20" cy="20" fill="transparent" r="16" stroke="currentColor" stroke-dasharray="100" stroke-dashoffset="20" stroke-linecap="round" stroke-width="3"></circle>
+</svg>
+<span class="absolute inset-0 flex items-center justify-center text-[10px] font-bold">80%</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar Shell -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center h-16 px-4 pb-safe bg-surface-container/70 dark:bg-surface-container/70 backdrop-blur-xl rounded-t-xl shadow-lg border-t border-outline-variant/10 z-50">
+<button class="flex flex-col items-center justify-center text-primary dark:text-primary after:content-[''] after:w-1 after:h-1 after:bg-primary after:rounded-full after:mt-1 Active: scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined">home</span>
+</button>
+<button class="flex flex-col items-center justify-center text-outline dark:text-outline hover:text-primary-fixed-dim transition-colors">
+<span class="material-symbols-outlined">explore</span>
+</button>
+<button class="flex flex-col items-center justify-center text-outline dark:text-outline hover:text-primary-fixed-dim transition-colors">
+<span class="material-symbols-outlined">monitoring</span>
+</button>
+<button class="flex flex-col items-center justify-center text-outline dark:text-outline hover:text-primary-fixed-dim transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</nav>
+<script>
+        // Simple interaction for the progress rings and buttons
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('touchstart', () => btn.classList.add('scale-95'));
+            btn.addEventListener('touchend', () => btn.classList.remove('scale-95'));
+        });
+    </script>
+</body></html>

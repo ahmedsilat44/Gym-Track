@@ -1,0 +1,14 @@
+{
+  "name": "Velocity Performance Gym Tracker",
+  "short_name": "Velocity",
+  "description": "Log workouts, track volume, and measure personal records.",
+  "start_url": "./#/",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0b1326",
+  "theme_color": "#0b1326",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
