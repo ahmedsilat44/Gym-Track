@@ -46,8 +46,7 @@ export default function Dashboard() {
   return (
     <main className="content-page dashboard-page">
       <header className="profile-header">
-        <div className="avatar">{name.slice(0, 2).toUpperCase()}</div>
-        <div className="profile-copy"><span className="eyebrow">Welcome back</span><h1>{name} <span className="wave">↗</span></h1></div>
+        <button className="profile-identity" onClick={() => navigate(`/profile/${user.id}`)} aria-label="Open your profile"><span className="avatar">{name.slice(0, 2).toUpperCase()}</span><span className="profile-copy"><span className="eyebrow">Welcome back</span><h1>{name} <span className="wave">↗</span></h1></span></button>
         <button className="notification-button" aria-label="Notifications"><Bell /><span>{recentRecords.length}</span></button>
       </header>
 

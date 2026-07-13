@@ -14,6 +14,7 @@ The frontend is React + Vite and can be hosted as a static site. Each installati
 - A fuzzy-searchable universal exercise catalog with near-duplicate suggestions.
 - Exercise history, volume trends, and CSV export.
 - Athlete profiles and username search.
+- Athlete profile pages with recent posts and published workout/routine collections.
 - Friend requests plus friends-only and public social posts.
 - Opt-in workout summaries, likes, and comments.
 - Friends-only or public routines that other athletes can copy into their planner.

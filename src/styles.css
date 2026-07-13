@@ -85,8 +85,11 @@ svg { flex: 0 0 auto; }
 
 .profile-header, .page-header, .session-header { display: flex; align-items: center; gap: 14px; margin-bottom: 30px; }
 .profile-header { min-height: 58px; }
+.profile-identity { min-width: 0; flex: 1; display: flex; align-items: center; gap: 14px; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; }
+.profile-identity:hover .profile-copy h1 { color: var(--primary); }
 .avatar { width: 52px; height: 52px; flex: 0 0 auto; display: grid; place-items: center; border: 2px solid rgba(87,241,219,.28); border-radius: 50%; background: linear-gradient(145deg, #26384c, #121c2f); color: var(--primary); font: 700 .88rem 'JetBrains Mono'; }
 .avatar.small { width: 44px; height: 44px; }
+.avatar-link { padding: 0; }
 .profile-copy { flex: 1; min-width: 0; }
 .profile-copy h1 { margin-top: 2px; font-size: clamp(1.4rem, 5vw, 2rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wave { color: var(--primary); }
@@ -230,6 +233,46 @@ svg { flex: 0 0 auto; }
 .sticky-action { position: sticky; bottom: 88px; z-index: 10; padding-top: 30px; }
 .sticky-action .primary-button { width: 100%; min-height: 58px; }
 
+/* Athlete profile */
+.profile-page { max-width: 1040px; }
+.profile-page-nav { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; margin-bottom: 20px; text-align: center; }
+.profile-hero { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; align-items: center; gap: 22px; padding: clamp(22px, 5vw, 34px); overflow: hidden; border-radius: var(--radius-xl); }
+.profile-avatar { width: 92px; height: 92px; font-size: 1.3rem; border-width: 3px; box-shadow: 0 0 32px rgba(87,241,219,.12); }
+.profile-hero-copy h1 { margin: 3px 0 9px; }
+.profile-hero-copy p { max-width: 560px; margin: 0; color: var(--muted); line-height: 1.6; }
+.profile-hero-action { justify-self: end; }
+.profile-relationship { min-height: 44px; display: inline-flex; align-items: center; gap: 7px; padding: 0 15px; border-radius: 99px; background: rgba(87,241,219,.09); color: var(--primary); font-weight: 700; }
+.profile-relationship.pending { color: var(--indigo); background: rgba(179,185,255,.09); }
+.profile-stats { grid-column: 2 / -1; display: flex; gap: 10px; padding-top: 7px; }
+.profile-stats > span { min-width: 100px; display: flex; flex-direction: column; gap: 3px; padding: 11px 14px; border-radius: 13px; background: rgba(6,14,32,.3); }
+.profile-stats strong { color: var(--text); font: 700 1.2rem 'Hanken Grotesk'; }
+.profile-stats small { font: .58rem 'JetBrains Mono'; text-transform: uppercase; }
+.profile-content-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(300px, .85fr); align-items: start; gap: 20px; margin-top: 36px; }
+.profile-feed-list, .published-workout-list { display: grid; gap: 12px; }
+.profile-post { overflow: hidden; border-radius: var(--radius-lg); }
+.profile-post > header { min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 15px; border-bottom: 1px solid rgba(186,202,197,.08); }
+.profile-post > header > span:last-child { display: flex; align-items: center; gap: 8px; }
+.profile-post > header small { font: .59rem 'JetBrains Mono'; }
+.profile-post-type { display: inline-flex; align-items: center; gap: 8px; font: 600 .65rem 'JetBrains Mono'; text-transform: uppercase; }
+.profile-post-type > span { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; background: rgba(179,185,255,.09); color: var(--indigo); }
+.profile-post-type.workout > span { color: var(--primary); background: rgba(87,241,219,.09); }
+.profile-post-type.routine > span { color: #ffc477; background: rgba(255,196,119,.09); }
+.profile-post-type svg { width: 15px; }
+.profile-post > p { margin: 0; padding: 16px; line-height: 1.6; white-space: pre-wrap; }
+.profile-post-summary { display: flex; flex-direction: column; gap: 4px; margin: 0 15px 15px; padding: 13px; border-radius: 12px; background: rgba(87,241,219,.055); }
+.profile-post-summary small { font: .62rem 'JetBrains Mono'; }
+.profile-post > footer { min-height: 42px; display: flex; align-items: center; gap: 18px; padding: 0 15px; border-top: 1px solid rgba(186,202,197,.08); color: var(--muted); font: .61rem 'JetBrains Mono'; }
+.published-workout-card { min-height: 178px; display: flex; flex-direction: column; align-items: flex-start; padding: 16px; border-radius: var(--radius-lg); }
+.published-workout-card > header { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.published-workout-card > header > span { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 11px; background: rgba(87,241,219,.09); color: var(--primary); }
+.published-workout-card > header svg { width: 18px; }
+.published-workout-card > header i { color: var(--muted); font: normal .59rem 'JetBrains Mono'; text-transform: uppercase; }
+.published-workout-card h3 { margin: 13px 0 5px; }
+.published-workout-card p { flex: 1; margin-bottom: 12px; color: var(--muted); font-size: .78rem; line-height: 1.5; }
+.published-workout-card > small { font: .61rem 'JetBrains Mono'; line-height: 1.5; }
+.published-workout-card > button { width: 100%; margin-top: 15px; }
+.published-workout-card.routine > header > span { color: #ffc477; background: rgba(255,196,119,.09); }
+
 /* Fixed workout planner */
 .planner-page .modal-card { width: min(100%, 780px); }
 .planner-today { min-height: 138px; display: grid; grid-template-columns: 64px 1fr auto; align-items: center; gap: 18px; padding: 22px; border-radius: var(--radius-xl); border-color: rgba(87,241,219,.25); }
@@ -300,7 +343,9 @@ svg { flex: 0 0 auto; }
 .feed-list { display: grid; gap: 14px; margin-top: 16px; }
 .feed-post { overflow: hidden; border-radius: var(--radius-xl); }
 .feed-post > header { min-height: 74px; padding: 14px 17px; display: flex; align-items: center; gap: 11px; }
-.feed-post > header > span:nth-child(2) { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.post-author { min-width: 0; flex: 1; display: flex; align-items: center; gap: 11px; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; }
+.post-author > span:last-child { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.post-author:hover strong { color: var(--primary); }
 .feed-post > header small { font: .62rem 'JetBrains Mono'; }
 .feed-post > header > svg { width: 18px; color: var(--muted); }
 .post-menu { width: 38px; height: 38px; display: grid; place-items: center; border: 0; background: transparent; }
@@ -576,6 +621,7 @@ input:focus, select:focus, textarea:focus { border-color: rgba(87,241,219,.6); b
   .social-layout { grid-template-columns: 1fr; }
   .social-sidebar { position: static; }
   .exercise-category-board { grid-template-columns: 1fr; }
+  .profile-content-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 560px) {
@@ -618,6 +664,12 @@ input:focus, select:focus, textarea:focus { border-color: rgba(87,241,219,.6); b
   .category-exercise-card .manager-actions button { display: grid; }
   .account-row { flex-wrap: wrap; }
   .account-row .danger-button { width: 100%; }
+  .profile-hero { grid-template-columns: 68px 1fr; gap: 15px; padding: 20px; }
+  .profile-avatar { width: 68px; height: 68px; font-size: 1rem; }
+  .profile-hero-action { grid-column: 1 / -1; justify-self: stretch; }
+  .profile-hero-action > button, .profile-hero-action > span { width: 100%; justify-content: center; }
+  .profile-stats { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); }
+  .profile-stats > span { min-width: 0; padding: 10px 8px; text-align: center; }
   .add-row { flex-direction: column; }
   .add-row .primary-button { width: 100%; }
   .progress-hero, .record-hero { min-height: 165px; padding: 20px; }
