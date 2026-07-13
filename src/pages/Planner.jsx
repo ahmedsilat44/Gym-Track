@@ -11,8 +11,9 @@ const blankDay = () => ({ name: 'Training day', weekday: '', exercises: [] })
 export default function Planner() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { routines, routineDays, routineExercises, exercises, startPlannedWorkout, saveRoutine, deleteRoutine, shareRoutine } = useData()
+  const { categories, routines, routineDays, routineExercises, exercises, startPlannedWorkout, saveRoutine, deleteRoutine, shareRoutine } = useData()
   const [form, setForm] = useState(null)
+  const [shareForm, setShareForm] = useState(null)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
@@ -26,19 +27,19 @@ export default function Planner() {
 
   const perform = async (action, message) => {
     setBusy(true); setError('')
-    try { await action(); setNotice(message); window.setTimeout(() => setNotice(''), 2800) }
+    try { await action(); setNotice(message); window.setTimeout(() => setNotice(''), 2800); return true }
     catch (caught) { setError(caught.message || 'Something went wrong.') }
     finally { setBusy(false) }
   }
 
   const openRoutine = (routine = null) => {
-    if (!routine) { setForm({ name: '', description: '', is_shared: false, days: [blankDay()] }); return }
+    if (!routine) { setForm({ name: '', description: '', visibility: 'private', days: [blankDay()] }); return }
     const days = routineDays.filter((item) => item.routine_id === routine.id).sort((a, b) => a.sort_order - b.sort_order).map((day) => ({
       ...day,
       weekday: day.weekday ?? '',
       exercises: routineExercises.filter((item) => item.routine_day_id === day.id).sort((a, b) => a.sort_order - b.sort_order).map((item) => ({ ...item, target_weight: item.target_weight ?? '' })),
     }))
-    setForm({ ...routine, days: days.length ? days : [blankDay()] })
+    setForm({ ...routine, visibility: routine.visibility ?? (routine.is_shared ? 'friends' : 'private'), days: days.length ? days : [blankDay()] })
   }
 
   const updateDay = (index, updates) => setForm({ ...form, days: form.days.map((day, dayIndex) => dayIndex === index ? { ...day, ...updates } : day) })
@@ -57,10 +58,11 @@ export default function Planner() {
   }
 
   const start = (dayId) => perform(async () => { await startPlannedWorkout(dayId); navigate('/session') }, '')
-  const share = (routine) => {
-    const caption = window.prompt('Add a message for your friends (optional)', `Try my ${routine.name} routine!`)
-    if (caption === null) return
-    perform(() => shareRoutine(routine.id, caption), 'Routine shared with your friends.')
+  const share = (routine) => setShareForm({ routine, caption: `Try my ${routine.name} routine!`, visibility: routine.visibility === 'public' ? 'public' : 'friends' })
+  const publishRoutine = async (event) => {
+    event.preventDefault()
+    const shared = await perform(() => shareRoutine(shareForm.routine.id, shareForm.caption, shareForm.visibility), `Routine shared with ${shareForm.visibility === 'public' ? 'everyone' : 'your friends'}.`)
+    if (shared) setShareForm(null)
   }
 
   return (
@@ -81,7 +83,7 @@ export default function Planner() {
           {ownRoutines.map((routine) => {
             const days = routineDays.filter((item) => item.routine_id === routine.id).sort((a, b) => a.sort_order - b.sort_order)
             return <article className="glass-card routine-card" key={routine.id}>
-              <header><div><span className={`share-state ${routine.is_shared ? 'shared' : ''}`}>{routine.is_shared ? <><Share2 /> Shared</> : 'Private'}</span><h2>{routine.name}</h2><p>{routine.description || 'A fixed workout plan.'}</p></div><button className="icon-button" onClick={() => openRoutine(routine)} aria-label={`Edit ${routine.name}`}><Edit3 /></button></header>
+              <header><div><span className={`share-state ${(routine.visibility ?? (routine.is_shared ? 'friends' : 'private')) !== 'private' ? 'shared' : ''}`}>{(routine.visibility ?? (routine.is_shared ? 'friends' : 'private')) === 'public' ? <><Share2 /> Public</> : (routine.visibility ?? (routine.is_shared ? 'friends' : 'private')) === 'friends' ? <><Share2 /> Friends</> : 'Private'}</span><h2>{routine.name}</h2><p>{routine.description || 'A fixed workout plan.'}</p></div><button className="icon-button" onClick={() => openRoutine(routine)} aria-label={`Edit ${routine.name}`}><Edit3 /></button></header>
               <div className="routine-days">{days.map((day) => {
                 const planned = routineExercises.filter((item) => item.routine_day_id === day.id)
                 return <div className={`routine-day ${day.weekday === new Date().getDay() ? 'today' : ''}`} key={day.id}>
@@ -101,12 +103,13 @@ export default function Planner() {
         <form id="routine-form" className="modal-form routine-form" onSubmit={submitRoutine}>
           <label>Routine name<input required maxLength="100" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="e.g. 4-Day Strength" /></label>
           <label>Description<textarea maxLength="600" rows="2" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="What is this plan focused on?" /></label>
+          <label>Routine visibility<select value={form.visibility || 'private'} onChange={(event) => setForm({ ...form, visibility: event.target.value })}><option value="private">Private — only me</option><option value="friends">Friends — accepted friends</option><option value="public">Public — every signed-in athlete</option></select></label>
           <div className="routine-builder-heading"><div><span className="eyebrow">Weekly schedule</span><strong>{form.days.length} training days</strong></div><button type="button" className="secondary-button compact" onClick={() => setForm({ ...form, days: [...form.days, blankDay()] })}><Plus /> Add day</button></div>
           {form.days.map((day, dayIndex) => <section className="routine-builder-day" key={day.id ?? dayIndex}>
             <header><span>{String(dayIndex + 1).padStart(2, '0')}</span><strong>Training day</strong>{form.days.length > 1 && <button type="button" onClick={() => setForm({ ...form, days: form.days.filter((_, index) => index !== dayIndex) })}><Trash2 /></button>}</header>
             <div className="planner-form-grid"><label>Day name<input required value={day.name} onChange={(event) => updateDay(dayIndex, { name: event.target.value })} /></label><label>Repeats on<select value={day.weekday} onChange={(event) => updateDay(dayIndex, { weekday: event.target.value })}><option value="">Flexible / no day</option>{weekdays.map((weekday, index) => <option value={index} key={weekday}>{weekday}</option>)}</select></label></div>
             <div className="planned-exercises">{day.exercises.map((planned, exerciseIndex) => <div className="planned-exercise" key={`${planned.exercise_id}-${exerciseIndex}`}>
-              <div className="planned-exercise-title"><span className="exercise-mini"><Dumbbell /></span><label>Exercise<select value={planned.exercise_id} onChange={(event) => { const selected = activeExercises.find((item) => item.id === event.target.value); updatePlanned(dayIndex, exerciseIndex, { exercise_id: selected.id, exercise_name: selected.name, unit: selected.unit }) }}>{activeExercises.filter((item) => item.id === planned.exercise_id || !day.exercises.some((other, index) => index !== exerciseIndex && other.exercise_id === item.id)).map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label><button type="button" onClick={() => updateDay(dayIndex, { exercises: day.exercises.filter((_, index) => index !== exerciseIndex) })}><Trash2 /></button></div>
+              <div className="planned-exercise-title"><span className="exercise-mini"><Dumbbell /></span><label>Exercise<select value={planned.exercise_id} onChange={(event) => { const selected = activeExercises.find((item) => item.id === event.target.value); updatePlanned(dayIndex, exerciseIndex, { exercise_id: selected.id, exercise_name: selected.name, unit: selected.unit }) }}>{activeExercises.filter((item) => item.id === planned.exercise_id || !day.exercises.some((other, index) => index !== exerciseIndex && other.exercise_id === item.id)).map((item) => <option value={item.id} key={item.id}>{item.name} — {categories.find((category) => category.id === item.category_id)?.name || 'Unassigned'}</option>)}</select></label><button type="button" onClick={() => updateDay(dayIndex, { exercises: day.exercises.filter((_, index) => index !== exerciseIndex) })}><Trash2 /></button></div>
               <div className="target-grid"><label>Sets<input type="number" min="1" max="20" required value={planned.target_sets} onChange={(event) => updatePlanned(dayIndex, exerciseIndex, { target_sets: event.target.value })} /></label><label>Min reps<input type="number" min="1" required value={planned.target_reps_min} onChange={(event) => updatePlanned(dayIndex, exerciseIndex, { target_reps_min: event.target.value })} /></label><label>Max reps<input type="number" min={planned.target_reps_min || 1} required value={planned.target_reps_max} onChange={(event) => updatePlanned(dayIndex, exerciseIndex, { target_reps_max: event.target.value })} /></label><label>Weight<input type="number" min="0" step="0.5" value={planned.target_weight} onChange={(event) => updatePlanned(dayIndex, exerciseIndex, { target_weight: event.target.value })} placeholder="Optional" /></label><label>Rest (sec)<input type="number" min="0" max="3600" required value={planned.rest_seconds} onChange={(event) => updatePlanned(dayIndex, exerciseIndex, { rest_seconds: event.target.value })} /></label></div>
               <label>Notes<input maxLength="400" value={planned.notes || ''} onChange={(event) => updatePlanned(dayIndex, exerciseIndex, { notes: event.target.value })} placeholder="Tempo, setup, or technique cue" /></label>
             </div>)}</div>
@@ -115,6 +118,7 @@ export default function Planner() {
           <p className="form-note"><Clock3 /> Targets appear inside the active workout. Routine sharing never exposes your individual set history.</p>
         </form>
       </Modal>}
+      {shareForm && <Modal title={`Share ${shareForm.routine.name}`} onClose={() => setShareForm(null)} footer={<><button className="secondary-button" onClick={() => setShareForm(null)}>Cancel</button><button className="primary-button compact" form="share-routine-form" disabled={busy}><Send /> Share routine</button></>}><form id="share-routine-form" className="modal-form" onSubmit={publishRoutine}><label>Message<textarea rows="3" maxLength="1000" value={shareForm.caption} onChange={(event) => setShareForm({ ...shareForm, caption: event.target.value })} /></label><label>Who can see it?<select value={shareForm.visibility} onChange={(event) => setShareForm({ ...shareForm, visibility: event.target.value })}><option value="friends">Friends only</option><option value="public">Public — every signed-in athlete</option></select></label><p className="form-note">Sharing includes the planned days, exercise names, and targets. It never includes your private set history.</p></form></Modal>}
     </main>
   )
 }

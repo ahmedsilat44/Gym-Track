@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
   const { signIn, signUp } = useAuth()
+  const allowSignup = import.meta.env.VITE_ALLOW_SIGNUP !== 'false'
   const [mode, setMode] = useState('signin')
   const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [error, setError] = useState('')
@@ -17,7 +18,7 @@ export default function Login() {
     setMessage('')
     try {
       if (mode === 'signin') await signIn(form.email, form.password)
-      else {
+      else if (allowSignup) {
         await signUp(form.email, form.password, form.name)
         setMessage('Account created. Check your email if confirmation is enabled, then sign in.')
         setMode('signin')
@@ -43,12 +44,13 @@ export default function Login() {
         <form onSubmit={submit}>
           {mode === 'signup' && <label>Display name<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required placeholder="How should we call you?" /></label>}
           <label>Email<div className="input-with-icon"><Mail size={18} /><input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required placeholder="you@example.com" /></div></label>
-          <label>Password<div className="input-with-icon"><LockKeyhole size={18} /><input type="password" minLength="6" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} required placeholder="At least 6 characters" /></div></label>
+          <label>Password<div className="input-with-icon"><LockKeyhole size={18} /><input type="password" minLength="8" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} required placeholder="At least 8 characters" /></div></label>
           {error && <p className="form-error">{error}</p>}
           {message && <p className="form-success">{message}</p>}
           <button className="primary-button" disabled={busy}>{busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'} <ArrowRight size={19} /></button>
         </form>
-        <button className="text-button" onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}>{mode === 'signin' ? 'New here? Create an account' : 'Already have an account? Sign in'}</button>
+        {allowSignup && <button className="text-button" onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}>{mode === 'signin' ? 'New here? Create an account' : 'Already have an account? Sign in'}</button>}
+        {!allowSignup && <p className="form-note">This is a private training network. Ask its owner for an invitation.</p>}
       </section>
     </main>
   )

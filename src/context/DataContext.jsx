@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 
 const DataContext = createContext(null)
-const DEMO_KEY = 'velocity-demo-data-v2'
+const DEMO_KEY = 'velocity-demo-data-v3'
 const ACTIVE_KEY = 'velocity-active-workout-v1'
 
 const readJson = (key, fallback) => {
@@ -38,7 +38,7 @@ const calculateRecords = (sets) => {
 }
 
 const emptyData = {
-  categories: [], exercises: [], sessions: [], sets: [], sessionExercises: [],
+  categories: [], exercises: [], exerciseCatalog: [], sessions: [], sets: [], sessionExercises: [],
   preferences: { unit: 'kg', display_name: 'Athlete' }, profiles: [], friendships: [],
   routines: [], routineDays: [], routineExercises: [], feedPosts: [], postLikes: [], postComments: [],
 }
@@ -70,6 +70,7 @@ export function DataProvider({ children }) {
         const results = await Promise.all([
           supabase.from('categories').select('*').order('sort_order'),
           supabase.from('exercises').select('*').order('name'),
+          supabase.from('exercise_catalog').select('*').order('name'),
           supabase.from('sessions').select('*').order('started_at', { ascending: false }),
           supabase.from('sets').select('*').order('created_at', { ascending: false }),
           supabase.from('session_exercises').select('*').order('sort_order'),
@@ -85,9 +86,10 @@ export function DataProvider({ children }) {
         ])
         const failed = results.find((result) => result.error)
         if (failed) throw failed.error
-        const [categories, exercises, sessions, sets, sessionExercises, preferences, profiles, friendships, routines, routineDays, routineExercises, feedPosts, postLikes, postComments] = results
+        const [categories, exercises, exerciseCatalog, sessions, sets, sessionExercises, preferences, profiles, friendships, routines, routineDays, routineExercises, feedPosts, postLikes, postComments] = results
         setData({
           categories: categories.data ?? [], exercises: exercises.data ?? [], sessions: sessions.data ?? [],
+          exerciseCatalog: exerciseCatalog.data ?? [],
           sets: sets.data ?? [], sessionExercises: sessionExercises.data ?? [],
           preferences: preferences.data ?? { unit: 'kg', display_name: user.user_metadata?.display_name || 'Athlete' },
           profiles: profiles.data ?? [], friendships: friendships.data ?? [], routines: routines.data ?? [],
@@ -145,26 +147,58 @@ export function DataProvider({ children }) {
       return persistDemo({
         ...data,
         categories: data.categories.map((item) => item.id === id ? { ...item, is_archived: true } : item),
-        exercises: data.exercises.map((item) => item.category_id !== id ? item : destination === 'archive' ? { ...item, is_archived: true } : { ...item, category_id: destination }),
+        exercises: data.exercises.map((item) => item.category_id !== id ? item : destination === 'archive' ? { ...item, is_archived: true } : { ...item, category_id: destination === 'unassigned' ? null : destination }),
       })
     }
     if (destination === 'archive') {
       const result = await supabase.from('exercises').update({ is_archived: true }).eq('category_id', id)
       if (result.error) throw result.error
     } else if (destination) {
-      const result = await supabase.from('exercises').update({ category_id: destination }).eq('category_id', id)
+      const result = await supabase.from('exercises').update({ category_id: destination === 'unassigned' ? null : destination }).eq('category_id', id)
       if (result.error) throw result.error
     }
     return runRemote(supabase.from('categories').update({ is_archived: true }).eq('id', id))
   }
 
   const saveExercise = async (exercise) => {
-    const payload = { name: exercise.name.trim(), category_id: exercise.category_id, unit: exercise.unit, is_bodyweight: exercise.is_bodyweight }
+    const cleanName = exercise.name.trim()
+    if (!cleanName) throw new Error('Exercise name is required.')
+    const duplicate = data.exercises.find((item) => item.id !== exercise.id && !item.is_archived && item.name.trim().toLowerCase() === cleanName.toLowerCase())
+    if (duplicate) throw new Error(`${duplicate.name} is already in your exercise library.`)
+    const payload = {
+      name: cleanName,
+      category_id: exercise.category_id || null,
+      exercise_type: exercise.exercise_type || 'strength',
+      unit: exercise.unit,
+      is_bodyweight: Boolean(exercise.is_bodyweight),
+    }
     if (isDemo) {
       const exercises = exercise.id ? data.exercises.map((item) => item.id === exercise.id ? { ...item, ...payload } : item) : [...data.exercises, { ...payload, id: crypto.randomUUID(), is_archived: false }]
-      return persistDemo({ ...data, exercises })
+      const normalizedName = cleanName.toLowerCase().replace(/\s+/g, ' ')
+      const exerciseCatalog = data.exerciseCatalog.some((item) => item.normalized_name === normalizedName)
+        ? data.exerciseCatalog
+        : [...data.exerciseCatalog, { id: crypto.randomUUID(), normalized_name: normalizedName, ...payload, category_id: undefined, created_by: user.id }]
+      return persistDemo({ ...data, exercises, exerciseCatalog })
     }
     return exercise.id ? runRemote(supabase.from('exercises').update(payload).eq('id', exercise.id)) : runRemote(supabase.from('exercises').insert({ ...payload, user_id: user.id }))
+  }
+
+  const assignExerciseCategory = async (exerciseId, categoryId) => {
+    const nextCategoryId = categoryId || null
+    if (isDemo) return persistDemo({ ...data, exercises: data.exercises.map((item) => item.id === exerciseId ? { ...item, category_id: nextCategoryId } : item) })
+    return runRemote(supabase.from('exercises').update({ category_id: nextCategoryId }).eq('id', exerciseId))
+  }
+
+  const addCatalogExercise = async (catalogExercise, categoryId = null) => {
+    const existing = data.exercises.find((item) => !item.is_archived && item.name.trim().toLowerCase() === catalogExercise.name.trim().toLowerCase())
+    if (existing) throw new Error(`${existing.name} is already in your exercise library.`)
+    return saveExercise({
+      name: catalogExercise.name,
+      category_id: categoryId,
+      exercise_type: catalogExercise.exercise_type,
+      unit: catalogExercise.unit,
+      is_bodyweight: catalogExercise.is_bodyweight,
+    })
   }
 
   const archiveExercise = async (id) => {
@@ -206,7 +240,9 @@ export function DataProvider({ children }) {
       targetSets: item.target_sets, repsMin: item.target_reps_min, repsMax: item.target_reps_max,
       weight: item.target_weight, restSeconds: item.rest_seconds, notes: item.notes,
     }]))
-    return startWorkout(matched[0].exercise.category_id, matched.map(({ exercise }) => exercise.id), { routineDayId, targets })
+    const selectedCategories = new Set(matched.map(({ exercise }) => exercise.category_id ?? 'unassigned'))
+    const categoryId = selectedCategories.size === 1 && !selectedCategories.has('unassigned') ? [...selectedCategories][0] : null
+    return startWorkout(categoryId, matched.map(({ exercise }) => exercise.id), { routineDayId, targets })
   }
 
   const logSet = async ({ exerciseId, reps, weight }) => {
@@ -288,7 +324,8 @@ export function DataProvider({ children }) {
   }
 
   const saveRoutine = async (routine) => {
-    const routinePayload = { name: routine.name.trim(), description: routine.description?.trim() ?? '', is_shared: Boolean(routine.is_shared), updated_at: new Date().toISOString() }
+    const visibility = routine.visibility ?? (routine.is_shared ? 'friends' : 'private')
+    const routinePayload = { name: routine.name.trim(), description: routine.description?.trim() ?? '', visibility, is_shared: visibility !== 'private', updated_at: new Date().toISOString() }
     if (!routinePayload.name) throw new Error('Routine name is required.')
     if (!routine.days?.length) throw new Error('Add at least one training day.')
     if (isDemo) {
@@ -348,23 +385,23 @@ export function DataProvider({ children }) {
     return runRemote(supabase.from('feed_posts').insert({ user_id: user.id, post_type, caption: row.caption, visibility, routine_id, metadata }))
   }
 
-  const shareRoutine = async (routineId, caption = '') => {
+  const shareRoutine = async (routineId, caption = '', visibility = 'friends') => {
     const routine = data.routines.find((item) => item.id === routineId && item.user_id === user.id)
     if (!routine) throw new Error('Routine not found.')
     const days = data.routineDays.filter((item) => item.routine_id === routineId)
     const dayIds = days.map((item) => item.id)
     const exerciseCount = data.routineExercises.filter((item) => dayIds.includes(item.routine_day_id)).length
     if (isDemo) {
-      const next = { ...data, routines: data.routines.map((item) => item.id === routineId ? { ...item, is_shared: true } : item) }
-      const row = { id: crypto.randomUUID(), user_id: user.id, post_type: 'routine', caption: caption.trim(), visibility: 'friends', routine_id: routineId, metadata: { routine_name: routine.name, day_count: days.length, exercise_count: exerciseCount }, created_at: new Date().toISOString() }
+      const next = { ...data, routines: data.routines.map((item) => item.id === routineId ? { ...item, is_shared: true, visibility } : item) }
+      const row = { id: crypto.randomUUID(), user_id: user.id, post_type: 'routine', caption: caption.trim(), visibility, routine_id: routineId, metadata: { routine_name: routine.name, day_count: days.length, exercise_count: exerciseCount }, created_at: new Date().toISOString() }
       return persistDemo({ ...next, feedPosts: [row, ...next.feedPosts] })
     }
-    const updateResult = await supabase.from('routines').update({ is_shared: true, updated_at: new Date().toISOString() }).eq('id', routineId)
+    const updateResult = await supabase.from('routines').update({ is_shared: true, visibility, updated_at: new Date().toISOString() }).eq('id', routineId)
     if (updateResult.error) throw updateResult.error
-    return runRemote(supabase.from('feed_posts').insert({ user_id: user.id, post_type: 'routine', caption: caption.trim(), visibility: 'friends', routine_id: routineId, metadata: { routine_name: routine.name, day_count: days.length, exercise_count: exerciseCount } }))
+    return runRemote(supabase.from('feed_posts').insert({ user_id: user.id, post_type: 'routine', caption: caption.trim(), visibility, routine_id: routineId, metadata: { routine_name: routine.name, day_count: days.length, exercise_count: exerciseCount } }))
   }
 
-  const shareProgress = async (sessionId, caption = '') => {
+  const shareProgress = async (sessionId, caption = '', visibility = 'friends') => {
     const session = data.sessions.find((item) => item.id === sessionId)
     const sessionSets = data.sets.filter((item) => item.session_id === sessionId)
     if (!session || !sessionSets.length) throw new Error('Log at least one set before sharing progress.')
@@ -377,7 +414,7 @@ export function DataProvider({ children }) {
       total_volume: Math.round(sessionSets.reduce((sum, item) => sum + Number(item.weight) * Number(item.reps), 0)),
       pr_count: sessionSets.filter((item) => item.is_pr).length,
     }
-    return createPost({ post_type: 'workout', caption, metadata })
+    return createPost({ post_type: 'workout', caption, visibility, metadata })
   }
 
   const toggleLike = async (postId) => {
@@ -399,16 +436,11 @@ export function DataProvider({ children }) {
   }
 
   const copyRoutine = async (routineId) => {
-    const source = data.routines.find((item) => item.id === routineId && item.user_id !== user.id && item.is_shared)
+    const source = data.routines.find((item) => item.id === routineId && item.user_id !== user.id && (item.visibility ?? (item.is_shared ? 'friends' : 'private')) !== 'private')
     if (!source) throw new Error('This shared routine is no longer available.')
     const sourceDays = data.routineDays.filter((item) => item.routine_id === routineId).sort((a, b) => a.sort_order - b.sort_order)
     const localExercises = [...data.exercises]
-    let categoryId = data.categories.find((item) => !item.is_archived)?.id
-    if (!categoryId && !isDemo) {
-      const result = await supabase.from('categories').insert({ user_id: user.id, name: 'Imported', sort_order: 0 }).select().single()
-      if (result.error) throw result.error
-      categoryId = result.data.id
-    }
+    const categoryId = null
     const days = []
     for (const day of sourceDays) {
       const sourceExercises = data.routineExercises.filter((item) => item.routine_day_id === day.id).sort((a, b) => a.sort_order - b.sort_order)
@@ -416,10 +448,10 @@ export function DataProvider({ children }) {
       for (const planned of sourceExercises) {
         let local = localExercises.find((item) => item.name.toLowerCase() === planned.exercise_name.toLowerCase() && !item.is_archived)
         if (!local && isDemo) {
-          local = { id: crypto.randomUUID(), category_id: categoryId, name: planned.exercise_name, unit: planned.unit, is_bodyweight: planned.unit === 'reps' || planned.unit === 'seconds', is_archived: false }
+          local = { id: crypto.randomUUID(), category_id: categoryId, name: planned.exercise_name, exercise_type: 'strength', unit: planned.unit, is_bodyweight: planned.unit === 'reps' || planned.unit === 'seconds', is_archived: false }
           localExercises.push(local)
         } else if (!local) {
-          const result = await supabase.from('exercises').insert({ user_id: user.id, category_id: categoryId, name: planned.exercise_name, unit: planned.unit, is_bodyweight: planned.unit === 'reps' || planned.unit === 'seconds' }).select().single()
+          const result = await supabase.from('exercises').insert({ user_id: user.id, category_id: categoryId, name: planned.exercise_name, exercise_type: 'strength', unit: planned.unit, is_bodyweight: planned.unit === 'reps' || planned.unit === 'seconds' }).select().single()
           if (result.error) throw result.error
           local = result.data
           localExercises.push(local)
@@ -428,7 +460,7 @@ export function DataProvider({ children }) {
       }
       days.push({ ...day, id: undefined, exercises: copiedExercises })
     }
-    const copied = await saveRoutine({ name: `${source.name} (Copy)`, description: source.description, is_shared: false, days })
+    const copied = await saveRoutine({ name: `${source.name} (Copy)`, description: source.description, visibility: 'private', days })
     if (isDemo) return persistDemo({ ...copied, exercises: localExercises })
     return copied
   }
@@ -443,7 +475,7 @@ export function DataProvider({ children }) {
   const records = useMemo(() => calculateRecords(data.sets), [data.sets])
   const value = {
     ...data, records, activeWorkout, loading, error, refresh,
-    addCategory, updateCategory, moveCategory, archiveCategory, saveExercise, archiveExercise,
+    addCategory, updateCategory, moveCategory, archiveCategory, saveExercise, assignExerciseCategory, addCatalogExercise, archiveExercise,
     startWorkout, startPlannedWorkout, logSet, deleteSet, endWorkout, updatePreferences,
     saveProfile, sendFriendRequest, respondToFriendRequest, removeFriend,
     saveRoutine, deleteRoutine, shareRoutine, shareProgress, createPost, toggleLike, addComment, deletePost, copyRoutine, resetDemo,

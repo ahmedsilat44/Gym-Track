@@ -18,7 +18,8 @@ export default function ActiveSession() {
   const [prMessage, setPrMessage] = useState('')
   const [showFinish, setShowFinish] = useState(false)
   const [notes, setNotes] = useState('')
-  const [shareWithFriends, setShareWithFriends] = useState(false)
+  const [shareSummary, setShareSummary] = useState(false)
+  const [shareVisibility, setShareVisibility] = useState('friends')
   const sessionExercises = activeWorkout?.exerciseIds.map((id) => exercises.find((item) => item.id === id)).filter(Boolean) ?? []
   const exercise = sessionExercises[exerciseIndex]
   const sessionSets = useMemo(() => sets.filter((item) => item.session_id === activeWorkout?.sessionId), [activeWorkout, sets])
@@ -64,8 +65,8 @@ export default function ActiveSession() {
     setBusy(true)
     try {
       const sessionId = await endWorkout(false, notes)
-      if (shareWithFriends) await shareProgress(sessionId, notes)
-      navigate(shareWithFriends ? '/social' : '/', { replace: true })
+      if (shareSummary) await shareProgress(sessionId, notes, shareVisibility)
+      navigate(shareSummary ? '/social' : '/', { replace: true })
     } finally { setBusy(false) }
   }
   const cancel = async () => {
@@ -116,7 +117,7 @@ export default function ActiveSession() {
         <button className="primary-button" onClick={() => setShowFinish(true)}><Dumbbell /> Finish workout</button>
       </div>
 
-      {showFinish && <Modal title="Complete this workout?" onClose={() => setShowFinish(false)} footer={<><button className="secondary-button" onClick={() => setShowFinish(false)}>Keep training</button><button className="primary-button compact" disabled={busy} onClick={finish}>{busy ? 'Saving…' : 'Finish'} <Check /></button></>}><div className="finish-summary"><Flame /><div><strong>{sessionSets.length} sets · {Math.round(totalVolume).toLocaleString()} kg</strong><p>Nice work. Add an optional note before saving this session.</p></div></div><label>Session notes<textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="How did it feel?" rows="3" /></label><label className="checkbox-label share-workout"><input type="checkbox" checked={shareWithFriends} onChange={(event) => setShareWithFriends(event.target.checked)} /><Users /><span><strong>Share a progress summary</strong><small>Your friends see exercise names and totals, never your individual sets.</small></span></label></Modal>}
+      {showFinish && <Modal title="Complete this workout?" onClose={() => setShowFinish(false)} footer={<><button className="secondary-button" onClick={() => setShowFinish(false)}>Keep training</button><button className="primary-button compact" disabled={busy} onClick={finish}>{busy ? 'Saving…' : 'Finish'} <Check /></button></>}><div className="finish-summary"><Flame /><div><strong>{sessionSets.length} sets · {Math.round(totalVolume).toLocaleString()} kg</strong><p>Nice work. Add an optional note before saving this session.</p></div></div><label>Session notes<textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="How did it feel?" rows="3" /></label><label className="checkbox-label share-workout"><input type="checkbox" checked={shareSummary} onChange={(event) => setShareSummary(event.target.checked)} /><Users /><span><strong>Share a progress summary</strong><small>Exercise names and totals are shared, never your individual sets.</small></span></label>{shareSummary && <label>Who can see it?<select value={shareVisibility} onChange={(event) => setShareVisibility(event.target.value)}><option value="friends">Friends only</option><option value="public">Public — every signed-in athlete</option></select></label>}</Modal>}
     </main>
   )
 }
