@@ -161,9 +161,10 @@ export function DataProvider({ children }) {
   }
 
   const saveExercise = async (exercise) => {
+    const exerciseId = exercise.id || null
     const cleanName = exercise.name.trim()
     if (!cleanName) throw new Error('Exercise name is required.')
-    const duplicate = data.exercises.find((item) => item.id !== exercise.id && !item.is_archived && item.name.trim().toLowerCase() === cleanName.toLowerCase())
+    const duplicate = data.exercises.find((item) => item.id !== exerciseId && !item.is_archived && item.name.trim().toLowerCase() === cleanName.toLowerCase())
     if (duplicate) throw new Error(`${duplicate.name} is already in your exercise library.`)
     const payload = {
       name: cleanName,
@@ -173,14 +174,21 @@ export function DataProvider({ children }) {
       is_bodyweight: Boolean(exercise.is_bodyweight),
     }
     if (isDemo) {
-      const exercises = exercise.id ? data.exercises.map((item) => item.id === exercise.id ? { ...item, ...payload } : item) : [...data.exercises, { ...payload, id: crypto.randomUUID(), is_archived: false }]
+      if (exerciseId && !data.exercises.some((item) => item.id === exerciseId)) throw new Error('The exercise being edited no longer exists.')
+      const exercises = exerciseId ? data.exercises.map((item) => item.id === exerciseId ? { ...item, ...payload } : item) : [...data.exercises, { ...payload, id: crypto.randomUUID(), is_archived: false }]
       const normalizedName = cleanName.toLowerCase().replace(/\s+/g, ' ')
       const exerciseCatalog = data.exerciseCatalog.some((item) => item.normalized_name === normalizedName)
         ? data.exerciseCatalog
         : [...data.exerciseCatalog, { id: crypto.randomUUID(), normalized_name: normalizedName, ...payload, category_id: undefined, created_by: user.id }]
       return persistDemo({ ...data, exercises, exerciseCatalog })
     }
-    return exercise.id ? runRemote(supabase.from('exercises').update(payload).eq('id', exercise.id)) : runRemote(supabase.from('exercises').insert({ ...payload, user_id: user.id }))
+    if (!exerciseId) return runRemote(supabase.from('exercises').insert({ ...payload, user_id: user.id }))
+
+    const result = await supabase.from('exercises').update(payload).eq('id', exerciseId).eq('user_id', user.id).select('id').maybeSingle()
+    if (result.error) throw result.error
+    if (!result.data) throw new Error('The exercise could not be updated. Refresh the page and try again.')
+    await refresh()
+    return result.data
   }
 
   const assignExerciseCategory = async (exerciseId, categoryId) => {
