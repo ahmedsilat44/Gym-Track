@@ -75,9 +75,16 @@ create table if not exists public.user_preferences (
 );
 
 create index if not exists exercises_user_category_idx on public.exercises(user_id, category_id) where not is_archived;
+create index if not exists exercises_category_idx on public.exercises(category_id);
 create index if not exists sessions_user_started_idx on public.sessions(user_id, started_at desc);
+create index if not exists sessions_category_idx on public.sessions(category_id);
+create index if not exists session_exercises_user_idx on public.session_exercises(user_id);
+create index if not exists session_exercises_exercise_idx on public.session_exercises(exercise_id);
 create index if not exists sets_user_exercise_created_idx on public.sets(user_id, exercise_id, created_at desc);
 create index if not exists sets_session_idx on public.sets(session_id, exercise_id, set_number);
+create index if not exists sets_exercise_idx on public.sets(exercise_id);
+create index if not exists personal_records_exercise_idx on public.personal_records(exercise_id);
+create index if not exists personal_records_set_idx on public.personal_records(set_id);
 
 alter table public.categories enable row level security;
 alter table public.exercises enable row level security;
@@ -94,7 +101,7 @@ begin
   loop
     execute format('drop policy if exists "Users manage their own rows" on public.%I', table_name);
     execute format(
-      'create policy "Users manage their own rows" on public.%I for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid())',
+      'create policy "Users manage their own rows" on public.%I for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()))',
       table_name
     );
   end loop;
@@ -242,6 +249,12 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.seed_new_athlete();
+
+-- These functions are trigger-only. Prevent PostgREST from exposing them as
+-- callable RPC endpoints while retaining SECURITY DEFINER for trigger work.
+revoke execute on function public.record_inserted_set() from public, anon, authenticated;
+revoke execute on function public.record_deleted_set() from public, anon, authenticated;
+revoke execute on function public.seed_new_athlete() from public, anon, authenticated;
 
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;

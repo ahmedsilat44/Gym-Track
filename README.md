@@ -27,6 +27,6 @@ The schema enables row-level security for every user-owned table and seeds the e
 
 ## Publish with GitHub Pages
 
-Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` as repository Actions secrets, then set Pages to **GitHub Actions**. The included workflow detects the repository name and builds Vite with the matching Pages base path.
+Set Pages to **GitHub Actions**. The included workflow detects the repository name and builds Vite with the matching Pages base path. The deployed browser connection uses the project URL and publishable key in `.env.production`; this key is intentionally public and protected by row-level security. Never place a Supabase service-role key in a frontend environment file.
 
 The app uses hash-based routes so direct navigation works on GitHub Pages without server rewrites.
