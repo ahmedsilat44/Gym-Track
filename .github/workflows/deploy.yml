@@ -38,7 +38,7 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
-          VITE_ALLOW_SIGNUP: ${{ vars.VITE_ALLOW_SIGNUP || 'false' }}
+          VITE_ALLOW_SIGNUP: ${{ vars.VITE_ALLOW_SIGNUP || 'true' }}
         run: npm run build
       - name: Verify production artifact
         run: |

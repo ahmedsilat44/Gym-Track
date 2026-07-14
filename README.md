@@ -136,25 +136,18 @@ The app also writes a `velocity_session_active=1` cookie for one year while a us
 
 This split is intentional for a static GitHub Pages SPA. A true `HttpOnly` auth cookie must be created and refreshed by a trusted server, which this project does not have. Moving the refresh token into a JavaScript-readable cookie would expose it to script while also sending it with page requests. See Supabase's [session documentation](https://supabase.com/docs/guides/auth/sessions) and [JavaScript client initialization options](https://supabase.com/docs/reference/javascript/initializing).
 
-### 4. Decide who may join
+### 4. Open signup and approve friendships
 
-For a private group of five or six friends, use one of these approaches:
+This project defaults to open account registration so friends can create their own accounts:
 
-**Recommended closed-network setup**
+1. In **Authentication → Providers → Email**, enable **Allow new users to sign up**.
+2. Keep **Confirm email** enabled so new members must verify ownership of their address.
+3. Leave `VITE_ALLOW_SIGNUP=true`, or omit the GitHub repository variable because the deployment workflow defaults it to `true`.
+4. After a friend registers, find them in **Discover Athletes**, send or accept their friend request, and only then will either account see content shared with **Friends** visibility.
 
-1. In **Authentication → Users**, use **Add user → Send invitation** for each friend.
-2. In Auth configuration, disable **Allow new users to sign up**.
-3. Set the GitHub repository variable `VITE_ALLOW_SIGNUP` to `false`.
+Friend acceptance is manual, but account registration is not an administrator approval gate. Any person who can reach the site can register while signup is open, discover profiles in the same installation, and see posts or routines marked **Public** after signing in. Keep personal content set to **Private** or **Friends** until you have accepted the intended friendship.
 
-Inviting users is an admin operation. Do it from the Supabase Dashboard; never add a secret/service-role key to this frontend. See [Supabase user invitations](https://supabase.com/docs/guides/auth/users#inviting-users).
-
-**Temporary open signup**
-
-1. Leave **Allow new users to sign up** enabled.
-2. Set `VITE_ALLOW_SIGNUP=true` while friends create accounts.
-3. After everyone joins, disable signup in Supabase and set the variable to `false`.
-
-The Vite variable only hides the signup UI. The Supabase Auth setting is the actual server-side security control.
+The Vite variable only shows or hides the signup UI. Supabase Auth's **Allow new users to sign up** setting is the actual server-side registration control. To close registration later, disable that setting and set `VITE_ALLOW_SIGNUP=false`.
 
 ### 5. Get the public client configuration
 
@@ -226,9 +219,9 @@ Under **Actions → Variables**, create:
 
 | Variable | Recommended value |
 | --- | --- |
-| `VITE_ALLOW_SIGNUP` | `false` for an invitation-only network |
+| `VITE_ALLOW_SIGNUP` | `true` for open account registration |
 
-The workflow defaults this value to `false` when the variable is absent.
+The workflow defaults this value to `true` when the variable is absent. Set it to `false` only when you also disable new signups in Supabase Auth.
 
 ### 3. Enable Pages
 
@@ -255,7 +248,8 @@ All accounts connected to the same Supabase project form one installation. Authe
 - A fork using its own Supabase project has a completely separate network.
 - Two deployments pointed at the same Supabase project share accounts and data policies.
 - Do not point a public fork at somebody else's Supabase project.
-- Disable new signups after the intended members have joined a private group.
+- Friend requests require manual acceptance before friends-only content is shared.
+- Open registration lets any signed-in account see content marked public.
 - Removing a friendship immediately removes access to friends-only posts and shared routines.
 - Public posts and public routines remain visible to all authenticated accounts in that installation.
 - Deleting a user's Auth account cascades their owned application data.
@@ -313,7 +307,8 @@ Before publishing or accepting contributors:
 - [ ] Supabase Security Advisor has no RLS findings.
 - [ ] `supabase/verify-security.sql` passes.
 - [ ] Email confirmation and an 8+ character password policy are enabled.
-- [ ] New signups are disabled for a closed friend group.
+- [ ] Signup availability matches the intended network (`true` for open registration, `false` for a closed group).
+- [ ] Sensitive posts and routines use **Private** or **Friends**, not **Public**.
 - [ ] Production and local redirect URLs are exact and expected.
 
 GitHub automatically scans public repositories for supported secret patterns, and repository push protection can block secrets before they enter history. See GitHub's [repository security quickstart](https://docs.github.com/en/code-security/getting-started/quickstart-for-securing-your-repository).
@@ -338,7 +333,7 @@ Set Supabase Auth's Site URL to the exact deployed Pages URL, including the repo
 
 ### A new visitor cannot sign up
 
-Check both controls: the `VITE_ALLOW_SIGNUP` UI variable and Supabase Auth's **Allow new users to sign up** setting. For a closed network, invite the user from the Dashboard rather than reopening public signup.
+Check both controls: `VITE_ALLOW_SIGNUP` must not be `false`, and Supabase Auth's **Allow new users to sign up** setting must be enabled. After changing the GitHub variable, redeploy the Pages workflow because Vite embeds the value at build time.
 
 ### Login is not remembered
 
