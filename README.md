@@ -104,7 +104,8 @@ Open **SQL Editor** in the new Supabase project and run these files in order:
 4. [`supabase/migrations/20260714100000_revoke_anonymous_access.sql`](supabase/migrations/20260714100000_revoke_anonymous_access.sql) — removes all signed-out table and schema access.
 5. [`supabase/migrations/20260714110000_universal_exercises_public_routines.sql`](supabase/migrations/20260714110000_universal_exercises_public_routines.sql) — unassigned exercises, exercise types, the universal catalog, mixed workouts, and public routines.
 6. [`supabase/migrations/20260714111000_index_exercise_catalog_creator.sql`](supabase/migrations/20260714111000_index_exercise_catalog_creator.sql) — covers the catalog creator foreign key.
-7. [`supabase/verify-security.sql`](supabase/verify-security.sql) — read-only security checks and a policy inventory.
+7. [`supabase/migrations/20260715100000_harden_model_relationships.sql`](supabase/migrations/20260715100000_harden_model_relationships.sql) — enforces parent/child ownership, immutable derived records, valid timestamps, and bounded post metadata.
+8. [`supabase/verify-security.sql`](supabase/verify-security.sql) — read-only security, ownership-integrity, grant, and policy checks.
 
 The verification script should complete without raising an exception. Its final query should return no execute grants for the trigger-only functions.
 

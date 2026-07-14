@@ -45,8 +45,9 @@ const emptyData = {
 
 export function DataProvider({ children }) {
   const { user, isDemo } = useAuth()
+  const activeStorageKey = `${ACTIVE_KEY}:${user.id}`
   const [data, setData] = useState(emptyData)
-  const [activeWorkout, setActiveWorkout] = useState(() => readJson(ACTIVE_KEY, null))
+  const [activeWorkout, setActiveWorkout] = useState(() => readJson(activeStorageKey, null))
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -106,6 +107,26 @@ export function DataProvider({ children }) {
 
   useEffect(() => { refresh() }, [refresh])
 
+  useEffect(() => {
+    if (loading) return
+    const legacyActive = readJson(ACTIVE_KEY, null)
+    const legacySession = legacyActive && data.sessions.find((item) => item.id === legacyActive.sessionId && !item.ended_at)
+    if (!activeWorkout && legacySession) {
+      setActiveWorkout(legacyActive)
+      localStorage.setItem(activeStorageKey, JSON.stringify(legacyActive))
+    }
+    localStorage.removeItem(ACTIVE_KEY)
+  }, [activeStorageKey, activeWorkout, data.sessions, loading])
+
+  useEffect(() => {
+    if (loading || !activeWorkout) return
+    const session = data.sessions.find((item) => item.id === activeWorkout.sessionId)
+    if (!session || session.ended_at) {
+      setActiveWorkout(null)
+      localStorage.removeItem(activeStorageKey)
+    }
+  }, [activeStorageKey, activeWorkout, data.sessions, loading])
+
   const runRemote = async (query, refreshAfter = true) => {
     const result = await query
     if (result.error) throw result.error
@@ -115,7 +136,9 @@ export function DataProvider({ children }) {
 
   const addCategory = async (name) => {
     const cleanName = name.trim()
-    if (!cleanName) return
+    if (!cleanName) throw new Error('Category name is required.')
+    if (cleanName.length > 80) throw new Error('Category names must be 80 characters or fewer.')
+    if (data.categories.some((item) => item.name.trim().toLowerCase() === cleanName.toLowerCase())) throw new Error('A category with this name already exists.')
     if (isDemo) return persistDemo({ ...data, categories: [...data.categories, { id: crypto.randomUUID(), name: cleanName, sort_order: data.categories.length, is_archived: false }] })
     return runRemote(supabase.from('categories').insert({ user_id: user.id, name: cleanName, sort_order: data.categories.length }))
   }
@@ -164,6 +187,10 @@ export function DataProvider({ children }) {
     const exerciseId = exercise.id || null
     const cleanName = exercise.name.trim()
     if (!cleanName) throw new Error('Exercise name is required.')
+    if (cleanName.length > 120) throw new Error('Exercise names must be 120 characters or fewer.')
+    if (!['strength', 'cardio', 'mobility', 'conditioning', 'other'].includes(exercise.exercise_type || 'strength')) throw new Error('Choose a valid exercise type.')
+    if (!['kg', 'lb', 'reps', 'seconds'].includes(exercise.unit)) throw new Error('Choose a valid exercise unit.')
+    if (exercise.category_id && !data.categories.some((item) => item.id === exercise.category_id && !item.is_archived)) throw new Error('Choose an active category or leave the exercise unassigned.')
     const duplicate = data.exercises.find((item) => item.id !== exerciseId && !item.is_archived && item.name.trim().toLowerCase() === cleanName.toLowerCase())
     if (duplicate) throw new Error(`${duplicate.name} is already in your exercise library.`)
     const payload = {
@@ -215,6 +242,12 @@ export function DataProvider({ children }) {
   }
 
   const startWorkout = async (categoryId, exerciseIds, options = {}) => {
+    if (activeWorkout) throw new Error('A workout is already active. Finish or cancel it before starting another.')
+    const uniqueExerciseIds = [...new Set(exerciseIds)]
+    if (!uniqueExerciseIds.length) throw new Error('Select at least one exercise.')
+    if (uniqueExerciseIds.length !== exerciseIds.length) throw new Error('Each exercise can appear only once in a workout.')
+    if (uniqueExerciseIds.some((id) => !data.exercises.some((item) => item.id === id && !item.is_archived))) throw new Error('One or more selected exercises are unavailable.')
+    if (categoryId && !data.categories.some((item) => item.id === categoryId && !item.is_archived)) throw new Error('The selected workout category is unavailable.')
     let sessionId
     if (isDemo) {
       sessionId = crypto.randomUUID()
@@ -227,12 +260,15 @@ export function DataProvider({ children }) {
       sessionId = session.id
       const rows = exerciseIds.map((exercise_id, sort_order) => ({ user_id: user.id, session_id: sessionId, exercise_id, sort_order }))
       const { error: exerciseError } = await supabase.from('session_exercises').insert(rows)
-      if (exerciseError) throw exerciseError
+      if (exerciseError) {
+        await supabase.from('sessions').delete().eq('id', sessionId)
+        throw exerciseError
+      }
       await refresh()
     }
     const active = { sessionId, categoryId, exerciseIds, startedAt: new Date().toISOString(), routineDayId: options.routineDayId ?? null, targets: options.targets ?? {} }
     setActiveWorkout(active)
-    localStorage.setItem(ACTIVE_KEY, JSON.stringify(active))
+    localStorage.setItem(activeStorageKey, JSON.stringify(active))
     return active
   }
 
@@ -253,10 +289,61 @@ export function DataProvider({ children }) {
     return startWorkout(categoryId, matched.map(({ exercise }) => exercise.id), { routineDayId, targets })
   }
 
+  const addActiveExercise = async (exerciseId) => {
+    if (!activeWorkout) throw new Error('No workout is active.')
+    const exercise = data.exercises.find((item) => item.id === exerciseId && !item.is_archived)
+    if (!exercise) throw new Error('This exercise is not available.')
+    if (activeWorkout.exerciseIds.includes(exerciseId)) throw new Error('This exercise is already in today\'s workout.')
+
+    const row = { id: crypto.randomUUID(), user_id: user.id, session_id: activeWorkout.sessionId, exercise_id: exerciseId, sort_order: activeWorkout.exerciseIds.length }
+    if (isDemo) {
+      persistDemo({ ...data, sessionExercises: [...data.sessionExercises, row] })
+    } else {
+      const result = await supabase.from('session_exercises').insert({ ...row, id: undefined })
+      if (result.error) throw result.error
+      await refresh()
+    }
+
+    const next = { ...activeWorkout, exerciseIds: [...activeWorkout.exerciseIds, exerciseId] }
+    setActiveWorkout(next)
+    localStorage.setItem(activeStorageKey, JSON.stringify(next))
+    return next
+  }
+
+  const removeActiveExercise = async (exerciseId) => {
+    if (!activeWorkout) throw new Error('No workout is active.')
+    if (!activeWorkout.exerciseIds.includes(exerciseId)) throw new Error('This exercise is not in today\'s workout.')
+    if (activeWorkout.exerciseIds.length === 1) throw new Error('A workout needs at least one exercise. Add another exercise before removing this one.')
+    if (data.sets.some((item) => item.session_id === activeWorkout.sessionId && item.exercise_id === exerciseId)) {
+      throw new Error('Delete the logged sets for this exercise before removing it from today\'s workout.')
+    }
+
+    if (isDemo) {
+      persistDemo({ ...data, sessionExercises: data.sessionExercises.filter((item) => !(item.session_id === activeWorkout.sessionId && item.exercise_id === exerciseId)) })
+    } else {
+      const result = await supabase.from('session_exercises').delete().eq('session_id', activeWorkout.sessionId).eq('exercise_id', exerciseId)
+      if (result.error) throw result.error
+      await refresh()
+    }
+
+    const exerciseIds = activeWorkout.exerciseIds.filter((id) => id !== exerciseId)
+    const targets = { ...(activeWorkout.targets ?? {}) }
+    delete targets[exerciseId]
+    const next = { ...activeWorkout, exerciseIds, targets }
+    setActiveWorkout(next)
+    localStorage.setItem(activeStorageKey, JSON.stringify(next))
+    return next
+  }
+
   const logSet = async ({ exerciseId, reps, weight }) => {
     if (!activeWorkout) throw new Error('No workout is active.')
+    if (!activeWorkout.exerciseIds.includes(exerciseId)) throw new Error('Add this exercise to today\'s workout before logging sets.')
+    const numericReps = Number(reps)
+    const numericWeight = Number(weight)
+    if (!Number.isInteger(numericReps) || numericReps < 1 || numericReps > 100000) throw new Error('Reps or duration must be a whole number between 1 and 100,000.')
+    if (!Number.isFinite(numericWeight) || numericWeight < 0 || numericWeight > 99999999) throw new Error('Weight must be between 0 and 99,999,999.')
     const existing = data.sets.filter((item) => item.session_id === activeWorkout.sessionId && item.exercise_id === exerciseId)
-    const row = { id: crypto.randomUUID(), session_id: activeWorkout.sessionId, exercise_id: exerciseId, set_number: existing.length + 1, reps: Number(reps), weight: Number(weight), created_at: new Date().toISOString() }
+    const row = { id: crypto.randomUUID(), session_id: activeWorkout.sessionId, exercise_id: exerciseId, set_number: existing.length + 1, reps: numericReps, weight: numericWeight, created_at: new Date().toISOString() }
     if (isDemo) {
       const previous = calculateRecords(data.sets).find((item) => item.exercise_id === exerciseId)
       const estimated = row.weight * (1 + row.reps / 30)
@@ -278,6 +365,7 @@ export function DataProvider({ children }) {
 
   const endWorkout = async (cancel = false, notes = '') => {
     if (!activeWorkout) return null
+    if (notes.length > 2000) throw new Error('Session notes must be 2,000 characters or fewer.')
     const sessionId = activeWorkout.sessionId
     if (isDemo) {
       persistDemo(cancel
@@ -291,7 +379,7 @@ export function DataProvider({ children }) {
       await runRemote(supabase.from('sessions').update({ ended_at: new Date().toISOString(), notes }).eq('id', sessionId))
     }
     setActiveWorkout(null)
-    localStorage.removeItem(ACTIVE_KEY)
+    localStorage.removeItem(activeStorageKey)
     return sessionId
   }
 
@@ -302,7 +390,14 @@ export function DataProvider({ children }) {
   }
 
   const saveProfile = async ({ username, display_name, bio, unit = data.preferences.unit || 'kg' }) => {
-    const profile = { id: user.id, username: username.trim().toLowerCase(), display_name: display_name.trim(), bio: bio.trim(), updated_at: new Date().toISOString() }
+    const cleanUsername = username.trim().toLowerCase()
+    const cleanDisplayName = display_name.trim()
+    const cleanBio = bio.trim()
+    if (!/^[a-z0-9_]{3,30}$/.test(cleanUsername)) throw new Error('Username must be 3–30 lowercase letters, numbers, or underscores.')
+    if (!cleanDisplayName || cleanDisplayName.length > 80) throw new Error('Display name must be between 1 and 80 characters.')
+    if (cleanBio.length > 240) throw new Error('Bio must be 240 characters or fewer.')
+    if (!['kg', 'lb'].includes(unit)) throw new Error('Choose kilograms or pounds.')
+    const profile = { id: user.id, username: cleanUsername, display_name: cleanDisplayName, bio: cleanBio, updated_at: new Date().toISOString() }
     if (isDemo) return persistDemo({ ...data, profiles: data.profiles.map((item) => item.id === user.id ? { ...item, ...profile } : item), preferences: { ...data.preferences, display_name: profile.display_name, unit } })
     const [profileResult, preferenceResult] = await Promise.all([
       supabase.from('profiles').upsert(profile),
@@ -335,7 +430,30 @@ export function DataProvider({ children }) {
     const visibility = routine.visibility ?? (routine.is_shared ? 'friends' : 'private')
     const routinePayload = { name: routine.name.trim(), description: routine.description?.trim() ?? '', visibility, is_shared: visibility !== 'private', updated_at: new Date().toISOString() }
     if (!routinePayload.name) throw new Error('Routine name is required.')
+    if (routinePayload.name.length > 100) throw new Error('Routine names must be 100 characters or fewer.')
+    if (routinePayload.description.length > 600) throw new Error('Routine descriptions must be 600 characters or fewer.')
+    if (!['private', 'friends', 'public'].includes(visibility)) throw new Error('Choose a valid routine visibility.')
     if (!routine.days?.length) throw new Error('Add at least one training day.')
+    routine.days.forEach((day) => {
+      const dayName = day.name?.trim() ?? ''
+      if (!dayName || dayName.length > 80) throw new Error('Every training day needs a name of 80 characters or fewer.')
+      if (day.weekday !== '' && day.weekday != null && (!Number.isInteger(Number(day.weekday)) || Number(day.weekday) < 0 || Number(day.weekday) > 6)) throw new Error('Choose a valid weekday.')
+      if (!day.exercises?.length) throw new Error(`Add at least one exercise to ${dayName}.`)
+      if (new Set(day.exercises.map((item) => item.exercise_id)).size !== day.exercises.length) throw new Error(`Remove duplicate exercises from ${dayName}.`)
+      day.exercises.forEach((planned) => {
+        const sets = Number(planned.target_sets)
+        const minReps = Number(planned.target_reps_min)
+        const maxReps = Number(planned.target_reps_max)
+        const rest = Number(planned.rest_seconds)
+        const targetWeight = planned.target_weight === '' || planned.target_weight == null ? null : Number(planned.target_weight)
+        if (!planned.exercise_id || !planned.exercise_name?.trim()) throw new Error(`Choose a valid exercise for ${dayName}.`)
+        if (!Number.isInteger(sets) || sets < 1 || sets > 20) throw new Error('Target sets must be between 1 and 20.')
+        if (!Number.isInteger(minReps) || !Number.isInteger(maxReps) || minReps < 1 || maxReps < minReps || maxReps > 1000) throw new Error('Target reps must be between 1 and 1,000, with max reps not below min reps.')
+        if (!Number.isInteger(rest) || rest < 0 || rest > 3600) throw new Error('Rest must be between 0 and 3,600 seconds.')
+        if (targetWeight != null && (!Number.isFinite(targetWeight) || targetWeight < 0)) throw new Error('Target weight cannot be negative.')
+        if ((planned.notes ?? '').length > 400) throw new Error('Exercise notes must be 400 characters or fewer.')
+      })
+    })
     if (isDemo) {
       const routineId = routine.id ?? crypto.randomUUID()
       const existingDayIds = data.routineDays.filter((item) => item.routine_id === routineId).map((item) => item.id)
@@ -388,7 +506,13 @@ export function DataProvider({ children }) {
   }
 
   const createPost = async ({ post_type = 'status', caption = '', visibility = 'friends', routine_id = null, metadata = {} }) => {
-    const row = { id: crypto.randomUUID(), user_id: user.id, post_type, caption: caption.trim(), visibility, routine_id, metadata, created_at: new Date().toISOString() }
+    const cleanCaption = caption.trim()
+    if (!['status', 'workout', 'routine'].includes(post_type)) throw new Error('Choose a valid post type.')
+    if (!['friends', 'public'].includes(visibility)) throw new Error('Choose a valid post visibility.')
+    if (cleanCaption.length > 1000) throw new Error('Posts must be 1,000 characters or fewer.')
+    if (!metadata || Array.isArray(metadata) || typeof metadata !== 'object' || JSON.stringify(metadata).length > 32768) throw new Error('Post summary is invalid or too large.')
+    if (routine_id && !data.routines.some((item) => item.id === routine_id && item.user_id === user.id)) throw new Error('Only your own routine can be attached to a post.')
+    const row = { id: crypto.randomUUID(), user_id: user.id, post_type, caption: cleanCaption, visibility, routine_id, metadata, created_at: new Date().toISOString() }
     if (isDemo) return persistDemo({ ...data, feedPosts: [row, ...data.feedPosts] })
     return runRemote(supabase.from('feed_posts').insert({ user_id: user.id, post_type, caption: row.caption, visibility, routine_id, metadata }))
   }
@@ -434,6 +558,7 @@ export function DataProvider({ children }) {
   const addComment = async (postId, body) => {
     const cleanBody = body.trim()
     if (!cleanBody) return
+    if (cleanBody.length > 500) throw new Error('Comments must be 500 characters or fewer.')
     if (isDemo) return persistDemo({ ...data, postComments: [...data.postComments, { id: crypto.randomUUID(), post_id: postId, user_id: user.id, body: cleanBody, created_at: new Date().toISOString() }] })
     return runRemote(supabase.from('post_comments').insert({ post_id: postId, user_id: user.id, body: cleanBody }))
   }
@@ -477,14 +602,14 @@ export function DataProvider({ children }) {
     const next = createDemoData()
     persistDemo(next)
     setActiveWorkout(null)
-    localStorage.removeItem(ACTIVE_KEY)
+    localStorage.removeItem(activeStorageKey)
   }
 
   const records = useMemo(() => calculateRecords(data.sets), [data.sets])
   const value = {
     ...data, records, activeWorkout, loading, error, refresh,
     addCategory, updateCategory, moveCategory, archiveCategory, saveExercise, assignExerciseCategory, addCatalogExercise, archiveExercise,
-    startWorkout, startPlannedWorkout, logSet, deleteSet, endWorkout, updatePreferences,
+    startWorkout, startPlannedWorkout, addActiveExercise, removeActiveExercise, logSet, deleteSet, endWorkout, updatePreferences,
     saveProfile, sendFriendRequest, respondToFriendRequest, removeFriend,
     saveRoutine, deleteRoutine, shareRoutine, shareProgress, createPost, toggleLike, addComment, deletePost, copyRoutine, resetDemo,
   }

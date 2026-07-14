@@ -10,3 +10,7 @@ supabase/.temp/
 .npmrc
 *.log
 .DS_Store
+.agents/
+.codex/
+.kilocode/
+skills-lock.json

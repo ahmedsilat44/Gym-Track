@@ -19,19 +19,31 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (!supabase) return undefined
+    let active = true
 
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-      updateSessionHintCookie(Boolean(data.session))
-      setLoading(false)
-    })
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        if (!active) return
+        setSession(data.session)
+        updateSessionHintCookie(Boolean(data.session))
+      })
+      .catch(() => {
+        if (active) setSession(null)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
 
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!active) return
       setSession(nextSession)
       updateSessionHintCookie(Boolean(nextSession))
       setLoading(false)
     })
-    return () => data.subscription.unsubscribe()
+    return () => {
+      active = false
+      data.subscription.unsubscribe()
+    }
   }, [])
 
   const value = useMemo(() => ({

@@ -90,8 +90,13 @@ export default function Settings() {
       const category = categories.find((item) => item.id === session?.category_id)
       return [session?.started_at, session?.ended_at, category?.name || 'Mixed / Unassigned', exercise?.name, set.set_number, set.weight, exercise?.unit, set.reps, set.is_pr, session?.notes]
     })
-    const csv = [header, ...rows].map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\n')
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+    const escapeCsvCell = (value) => {
+      const text = String(value ?? '')
+      const spreadsheetSafe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text
+      return `"${spreadsheetSafe.replaceAll('"', '""')}"`
+    }
+    const csv = [header, ...rows].map((row) => row.map(escapeCsvCell).join(',')).join('\n')
+    const url = URL.createObjectURL(new Blob(['\ufeff', csv], { type: 'text/csv;charset=utf-8' }))
     const link = document.createElement('a')
     link.href = url
     link.download = `velocity-workouts-${new Date().toISOString().slice(0, 10)}.csv`
