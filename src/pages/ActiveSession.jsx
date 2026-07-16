@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, CircleStop, Dumbbell, Flame, ListPlus, Plus, RotateCcw, Search, Target, Trash2, Trophy, Users } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, CircleStop, Dumbbell, Flame, ListPlus, Plus, RotateCcw, Search, Target, TimerReset, Trash2, Trophy, Users } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Modal from '../components/Modal'
@@ -7,6 +7,11 @@ import { useData } from '../context/DataContext'
 import { fuzzySearch } from '../utils/fuzzySearch'
 
 const formatTimer = (seconds) => [Math.floor(seconds / 3600), Math.floor((seconds % 3600) / 60), seconds % 60].map((value) => String(value).padStart(2, '0')).join(':')
+const formatRestTimer = (seconds) => {
+  const parts = [Math.floor((seconds % 3600) / 60), seconds % 60]
+  if (seconds >= 3600) parts.unshift(Math.floor(seconds / 3600))
+  return parts.map((value) => String(value).padStart(2, '0')).join(':')
+}
 const exerciseTypes = ['all', 'strength', 'cardio', 'mobility', 'conditioning', 'other']
 
 export default function ActiveSession() {
@@ -16,6 +21,7 @@ export default function ActiveSession() {
   const [weight, setWeight] = useState(20)
   const [reps, setReps] = useState(8)
   const [elapsed, setElapsed] = useState(0)
+  const [restElapsed, setRestElapsed] = useState(null)
   const [busy, setBusy] = useState(false)
   const [prMessage, setPrMessage] = useState('')
   const [showFinish, setShowFinish] = useState(false)
@@ -29,6 +35,10 @@ export default function ActiveSession() {
   const sessionExercises = activeWorkout?.exerciseIds.map((id) => exercises.find((item) => item.id === id)).filter(Boolean) ?? []
   const exercise = sessionExercises[exerciseIndex]
   const sessionSets = useMemo(() => sets.filter((item) => item.session_id === activeWorkout?.sessionId), [activeWorkout, sets])
+  const lastSetAt = useMemo(() => sessionSets.reduce((latest, item) => {
+    const timestamp = new Date(item.created_at).getTime()
+    return Number.isFinite(timestamp) && timestamp > latest ? timestamp : latest
+  }, 0), [sessionSets])
   const exerciseSets = sessionSets.filter((item) => item.exercise_id === exercise?.id).sort((a, b) => a.set_number - b.set_number)
   const target = exercise ? activeWorkout?.targets?.[exercise.id] : null
   const availableExercises = useMemo(() => fuzzySearch(
@@ -38,11 +48,15 @@ export default function ActiveSession() {
 
   useEffect(() => {
     if (!activeWorkout) return undefined
-    const tick = () => setElapsed(Math.max(0, Math.floor((Date.now() - new Date(activeWorkout.startedAt).getTime()) / 1000)))
+    const tick = () => {
+      const now = Date.now()
+      setElapsed(Math.max(0, Math.floor((now - new Date(activeWorkout.startedAt).getTime()) / 1000)))
+      setRestElapsed(lastSetAt ? Math.max(0, Math.floor((now - lastSetAt) / 1000)) : null)
+    }
     tick()
     const timer = window.setInterval(tick, 1000)
     return () => window.clearInterval(timer)
-  }, [activeWorkout])
+  }, [activeWorkout, lastSetAt])
 
   useEffect(() => {
     if (!exercise) return
@@ -122,6 +136,13 @@ export default function ActiveSession() {
       <section className="session-summary glass-card">
         <div><span className="eyebrow">Sets logged</span><strong>{sessionSets.length}</strong></div><div><span className="eyebrow">Volume</span><strong>{Math.round(totalVolume).toLocaleString()} <small>kg</small></strong></div><div><span className="eyebrow">Exercises</span><strong>{completedExercises}<small>/{sessionExercises.length}</small></strong></div>
       </section>
+
+      <div className={`rest-timer ${restElapsed != null ? 'is-running' : ''}`} aria-label={restElapsed == null ? 'Rest timer starts after your first set' : `${formatRestTimer(restElapsed)} since your last set`}>
+        <TimerReset aria-hidden="true" />
+        <span>Rest</span>
+        <strong>{restElapsed == null ? '--:--' : formatRestTimer(restElapsed)}</strong>
+        <small>{restElapsed == null ? 'starts after first set' : 'since last set'}</small>
+      </div>
 
       {prMessage && <div className="pr-toast"><Trophy /> <span><strong>PR unlocked</strong><small>{prMessage}</small></span></div>}
 

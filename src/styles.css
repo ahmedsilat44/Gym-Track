@@ -411,6 +411,14 @@ svg { flex: 0 0 auto; }
 .session-summary > div:last-child { border: 0; }
 .session-summary strong { font: 700 clamp(1.25rem, 5vw, 1.75rem) 'Hanken Grotesk'; }
 .session-summary strong small { font: 500 .62rem 'JetBrains Mono'; }
+.rest-timer { width: max-content; max-width: 100%; min-height: 38px; margin: -1px auto 18px; padding: 7px 12px; display: flex; align-items: center; gap: 7px; border: 1px solid rgba(186,202,197,.11); border-radius: 0 0 13px 13px; background: rgba(6,14,32,.56); color: var(--muted); }
+.rest-timer > svg { width: 16px; height: 16px; }
+.rest-timer > span { font: 600 .59rem 'JetBrains Mono'; letter-spacing: .08em; text-transform: uppercase; }
+.rest-timer > strong { min-width: 45px; color: var(--muted); font: 700 .86rem 'JetBrains Mono'; font-variant-numeric: tabular-nums; }
+.rest-timer > small { font-size: .64rem; }
+.rest-timer.is-running { border-color: rgba(87,241,219,.18); color: var(--primary); }
+.rest-timer.is-running > strong { color: var(--primary); }
+.rest-timer.is-running > small { color: var(--muted); }
 .pr-toast { top: 96px; color: var(--primary); border-radius: 16px; }
 .pr-toast > span { display: flex; flex-direction: column; gap: 2px; }
 .pr-toast small { font-size: .68rem; }
