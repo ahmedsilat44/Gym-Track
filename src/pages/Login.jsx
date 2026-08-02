@@ -20,7 +20,7 @@ export default function Login() {
       if (mode === 'signin') await signIn(form.email, form.password)
       else if (allowSignup) {
         await signUp(form.email, form.password, form.name)
-        setMessage('Account created. Check your email if confirmation is enabled, then sign in.')
+        setMessage('Request received. Confirm your email, then sign in to check admin approval.')
         setMode('signin')
       }
     } catch (caught) {
@@ -40,16 +40,16 @@ export default function Login() {
         <div className="hero-grid" aria-hidden="true"><i /><i /><i /><i /><i /></div>
       </section>
       <section className="login-card glass-card">
-        <div><p className="eyebrow">Athlete access</p><h2>{mode === 'signin' ? 'Welcome back' : 'Create your account'}</h2></div>
+        <div><p className="eyebrow">Athlete access</p><h2>{mode === 'signin' ? 'Welcome back' : 'Join the waitlist'}</h2></div>
         <form onSubmit={submit}>
           {mode === 'signup' && <label>Display name<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required placeholder="How should we call you?" /></label>}
           <label>Email<div className="input-with-icon"><Mail size={18} /><input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required placeholder="you@example.com" /></div></label>
           <label>Password<div className="input-with-icon"><LockKeyhole size={18} /><input type="password" minLength="8" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} required placeholder="At least 8 characters" /></div></label>
           {error && <p className="form-error">{error}</p>}
           {message && <p className="form-success">{message}</p>}
-          <button className="primary-button" disabled={busy}>{busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'} <ArrowRight size={19} /></button>
+          <button className="primary-button" disabled={busy}>{busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Request access'} <ArrowRight size={19} /></button>
         </form>
-        {allowSignup && <button className="text-button" onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}>{mode === 'signin' ? 'New here? Create an account' : 'Already have an account? Sign in'}</button>}
+        {allowSignup && <button className="text-button" onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}>{mode === 'signin' ? 'New here? Join the waitlist' : 'Already have an account? Sign in'}</button>}
         {!allowSignup && <p className="form-note">This is a private training network. Ask its owner for an invitation.</p>}
       </section>
     </main>

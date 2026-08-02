@@ -33,6 +33,69 @@ begin
     raise exception 'Authenticated clients have unnecessary update grants on immutable workout rows.';
   end if;
 
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public' and table_name = 'profiles'
+      and column_name = 'access_status'
+  ) then
+    raise exception 'Admin approval migration has not been applied.';
+  end if;
+
+  if has_column_privilege('authenticated', 'public.profiles', 'access_status', 'UPDATE')
+    or has_column_privilege('authenticated', 'public.profiles', 'is_admin', 'UPDATE')
+    or has_column_privilege('authenticated', 'public.profiles', 'approved_at', 'UPDATE')
+    or has_column_privilege('authenticated', 'public.profiles', 'approved_by', 'UPDATE') then
+    raise exception 'Authenticated clients can directly change administrator-managed profile fields.';
+  end if;
+
+  if exists (
+    select 1
+    from pg_tables as app_table
+    where app_table.schemaname = 'public'
+      and not exists (
+        select 1
+        from pg_policies as policy
+        where policy.schemaname = app_table.schemaname
+          and policy.tablename = app_table.tablename
+          and policy.policyname = 'Approved members only'
+          and policy.permissive = 'RESTRICTIVE'
+      )
+  ) then
+    raise exception 'One or more public tables are missing the restrictive approval policy.';
+  end if;
+
+  if exists (select 1 from public.profiles)
+    and not exists (
+      select 1 from public.profiles
+      where is_admin and access_status = 'approved'
+    ) then
+    raise exception 'No approved administrator exists. Bootstrap the owner account first.';
+  end if;
+
+  if to_regprocedure('public.has_app_access()') is null
+    or to_regprocedure('public.is_app_admin()') is null
+    or to_regprocedure('public.get_my_membership()') is null
+    or to_regprocedure('public.admin_list_members()') is null
+    or to_regprocedure('public.admin_set_member_access(uuid,text)') is null then
+    raise exception 'One or more approval RPCs are missing.';
+  end if;
+
+  if exists (
+    select 1
+    from pg_proc
+    where oid in (
+      to_regprocedure('public.has_app_access()'),
+      to_regprocedure('public.is_app_admin()'),
+      to_regprocedure('public.get_my_membership()'),
+      to_regprocedure('public.admin_list_members()'),
+      to_regprocedure('public.admin_set_member_access(uuid,text)')
+    )
+      and not prosecdef
+  ) then
+    raise exception 'Approval RPCs must remain security-definer functions.';
+  end if;
+
   if exists (
     select 1 from public.session_exercises child
     join public.sessions parent on parent.id = child.session_id
@@ -100,6 +163,7 @@ where routine_schema = 'public'
     'seed_social_profile',
     'validate_friendship_acceptance',
     'normalize_exercise_name',
-    'sync_exercise_to_catalog'
+    'sync_exercise_to_catalog',
+    'protect_profile_membership_fields'
   )
 order by routine_name, grantee;

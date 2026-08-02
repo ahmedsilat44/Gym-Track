@@ -14,6 +14,8 @@ The frontend is React + Vite and can be hosted as a static site. Each installati
 - A fuzzy-searchable universal exercise catalog with near-duplicate suggestions.
 - Exercise history, volume trends, and CSV export.
 - Athlete profiles and username search.
+- Open registration with an administrator-approved waitlist.
+- Mobile admin console for approving, rejecting, and revoking member access.
 - Athlete profile pages with recent posts and published workout/routine collections.
 - Friend requests plus friends-only and public social posts.
 - Opt-in workout summaries, likes, and comments.
@@ -39,15 +41,16 @@ There is no custom backend server and no elevated Supabase credential in the app
 
 | Data | Who can read it | Who can change it |
 | --- | --- | --- |
-| Categories, exercises, sessions, sets, records, preferences | Owner only | Owner only |
-| Universal exercise catalog | Any authenticated member of the same Supabase project | Populated automatically from authenticated users' exercises |
-| Athlete profile name, username, and bio | Any authenticated member of the same Supabase project | Profile owner |
+| Membership status and account email | Account owner can read their status; administrators can list all | Administrators only |
+| Categories, exercises, sessions, sets, records, preferences | Approved owner only | Approved owner only |
+| Universal exercise catalog | Any approved member of the same Supabase project | Populated automatically from approved users' exercises |
+| Athlete profile name, username, and bio | Any approved member of the same Supabase project | Approved profile owner |
 | Friend requests | The two participants | Requester can send; recipient can accept; either can remove |
 | Private routines | Owner only | Owner only |
 | Friends routines | Owner and accepted friends | Owner only |
-| Public routines | Any authenticated member of the same Supabase project | Owner only |
+| Public routines | Any approved member of the same Supabase project | Owner only |
 | Friends-only posts | Author and accepted friends | Author only |
-| Public posts | Any authenticated member of the same Supabase project | Author only |
+| Public posts | Any approved member of the same Supabase project | Author only |
 | Likes and comments | Anyone who can read the post | Signed-in author of the like/comment |
 
 Detailed sets and workout history are never exposed to friends. A workout appears on the social board only when the athlete checks **Share a progress summary** at completion. That post contains totals and exercise names, not individual set rows.
@@ -105,7 +108,8 @@ Open **SQL Editor** in the new Supabase project and run these files in order:
 5. [`supabase/migrations/20260714110000_universal_exercises_public_routines.sql`](supabase/migrations/20260714110000_universal_exercises_public_routines.sql) — unassigned exercises, exercise types, the universal catalog, mixed workouts, and public routines.
 6. [`supabase/migrations/20260714111000_index_exercise_catalog_creator.sql`](supabase/migrations/20260714111000_index_exercise_catalog_creator.sql) — covers the catalog creator foreign key.
 7. [`supabase/migrations/20260715100000_harden_model_relationships.sql`](supabase/migrations/20260715100000_harden_model_relationships.sql) — enforces parent/child ownership, immutable derived records, valid timestamps, and bounded post metadata.
-8. [`supabase/verify-security.sql`](supabase/verify-security.sql) — read-only security, ownership-integrity, grant, and policy checks.
+8. [`supabase/migrations/20260802100000_admin_approval_waitlist.sql`](supabase/migrations/20260802100000_admin_approval_waitlist.sql) — adds membership states, administrator RPCs, and a restrictive approval policy on every app table.
+9. [`supabase/verify-security.sql`](supabase/verify-security.sql) — read-only security, ownership-integrity, grant, approval, and policy checks.
 
 The verification script should complete without raising an exception. Its final query should return no execute grants for the trigger-only functions.
 
@@ -137,18 +141,33 @@ The app also writes a `velocity_session_active=1` cookie for one year while a us
 
 This split is intentional for a static GitHub Pages SPA. A true `HttpOnly` auth cookie must be created and refreshed by a trusted server, which this project does not have. Moving the refresh token into a JavaScript-readable cookie would expose it to script while also sending it with page requests. See Supabase's [session documentation](https://supabase.com/docs/guides/auth/sessions) and [JavaScript client initialization options](https://supabase.com/docs/reference/javascript/initializing).
 
-### 4. Open signup and approve friendships
+### 4. Open signup, bootstrap the owner, and approve members
 
-This project defaults to open account registration so friends can create their own accounts:
+Registration stays public, but every new profile starts as `pending`. Restrictive RLS policies block pending or rejected accounts from every application table. They can only read their own approval state through a narrow RPC.
 
 1. In **Authentication → Providers → Email**, enable **Allow new users to sign up**.
-2. Keep **Confirm email** enabled so new members must verify ownership of their address.
-3. Leave `VITE_ALLOW_SIGNUP=true`, or omit the GitHub repository variable because the deployment workflow defaults it to `true`.
-4. After a friend registers, find them in **Discover Athletes**, send or accept their friend request, and only then will either account see content shared with **Friends** visibility.
+2. Keep **Confirm email** enabled so applicants must verify ownership of their address.
+3. Leave `VITE_ALLOW_SIGNUP=true`. This exposes the waitlist form; it does not grant application access.
+4. Create the owner's account through the app.
+5. In Supabase **SQL Editor**, run this once after replacing the placeholder with the exact owner email:
 
-Friend acceptance is manual, but account registration is not an administrator approval gate. Any person who can reach the site can register while signup is open, discover profiles in the same installation, and see posts or routines marked **Public** after signing in. Keep personal content set to **Private** or **Friends** until you have accepted the intended friendship.
+```sql
+update public.profiles
+set is_admin = true,
+    access_status = 'approved',
+    approved_at = now()
+where id = (
+  select id
+  from auth.users
+  where lower(email) = lower('OWNER@example.com')
+);
+```
 
-The Vite variable only shows or hides the signup UI. Supabase Auth's **Allow new users to sign up** setting is the actual server-side registration control. To close registration later, disable that setting and set `VITE_ALLOW_SIGNUP=false`.
+Confirm that exactly one row was updated. Sign out and back in, then open **Settings → Admin console**. Pending applicants appear there with Approve and Reject actions. Approved non-admin members can later be returned to the waitlist or rejected. Administrator accounts cannot be revoked through the app, preventing accidental loss of the final admin.
+
+For an existing installation, the migration approves existing profiles and promotes the oldest account only when no administrator exists. New signups after migration remain pending.
+
+The Vite variable only shows or hides the signup UI. Supabase Auth's **Allow new users to sign up** setting controls whether Auth accepts registrations. The database approval state controls access after registration. To close the waitlist, disable new signups in Supabase and set `VITE_ALLOW_SIGNUP=false`.
 
 ### 5. Get the public client configuration
 
@@ -190,14 +209,16 @@ npm run dev
 
 Create two test accounts and verify:
 
-1. Each account sees only its own workout history.
-2. One account can send and the other can accept a friend request.
-3. A private routine is invisible to the friend.
-4. A shared routine becomes copyable only after friendship acceptance.
-5. A public routine is visible and copyable without a friendship, but only after sign-in.
-6. A shared workout appears as a summary, without individual sets.
-7. A misspelled exercise search returns close matches, and exercise creation shows similar universal names.
-8. An uncategorized exercise can be dragged into a category and selected alongside exercises from other categories.
+1. A new account reaches the approval-pending screen and cannot query app tables.
+2. Only an administrator can open `#/admin` and approve the account.
+3. After approval and status refresh, each account sees only its own workout history.
+4. One account can send and the other can accept a friend request.
+5. A private routine is invisible to the friend.
+6. A shared routine becomes copyable only after friendship acceptance.
+7. A public routine is visible and copyable without a friendship, but only to approved members.
+8. A shared workout appears as a summary, without individual sets.
+9. A misspelled exercise search returns close matches, and exercise creation shows similar universal names.
+10. An uncategorized exercise can be dragged into a category and selected alongside exercises from other categories.
 
 ## Deploy your fork to GitHub Pages
 
@@ -220,7 +241,7 @@ Under **Actions → Variables**, create:
 
 | Variable | Recommended value |
 | --- | --- |
-| `VITE_ALLOW_SIGNUP` | `true` for open account registration |
+| `VITE_ALLOW_SIGNUP` | `true` for an open waitlist |
 
 The workflow defaults this value to `true` when the variable is absent. Set it to `false` only when you also disable new signups in Supabase Auth.
 
@@ -244,15 +265,15 @@ The HTML includes a Content Security Policy limited to same-origin application a
 
 ## Create and use your friend network
 
-All accounts connected to the same Supabase project form one installation. Authenticated members can discover the other profiles in that installation and send friend requests.
+All approved accounts connected to the same Supabase project form one installation. Approved members can discover other approved profiles and send friend requests. Pending and rejected accounts cannot load profiles, public posts, routines, or workout data.
 
 - A fork using its own Supabase project has a completely separate network.
 - Two deployments pointed at the same Supabase project share accounts and data policies.
 - Do not point a public fork at somebody else's Supabase project.
 - Friend requests require manual acceptance before friends-only content is shared.
-- Open registration lets any signed-in account see content marked public.
+- Open registration creates pending accounts; it does not expose member content.
 - Removing a friendship immediately removes access to friends-only posts and shared routines.
-- Public posts and public routines remain visible to all authenticated accounts in that installation.
+- Public posts and public routines remain visible to all approved accounts in that installation.
 - Deleting a user's Auth account cascades their owned application data.
 
 ## Environment variables
@@ -262,7 +283,7 @@ All accounts connected to the same Supabase project form one installation. Authe
 | `VITE_SUPABASE_URL` | For cloud mode | Public | Supabase project API URL |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | For cloud mode | Public | Low-privilege browser client key |
 | `VITE_SUPABASE_ANON_KEY` | Legacy only | Public | Backward-compatible legacy client key |
-| `VITE_ALLOW_SIGNUP` | No | Public | Shows or hides the signup UI; not a security boundary |
+| `VITE_ALLOW_SIGNUP` | No | Public | Shows or hides the waitlist UI; database approval remains the security boundary |
 
 Vite exposes every `VITE_*` variable to browser code. Never use that prefix for a credential that must remain secret.
 
@@ -308,7 +329,8 @@ Before publishing or accepting contributors:
 - [ ] Supabase Security Advisor has no RLS findings.
 - [ ] `supabase/verify-security.sql` passes.
 - [ ] Email confirmation and an 8+ character password policy are enabled.
-- [ ] Signup availability matches the intended network (`true` for open registration, `false` for a closed group).
+- [ ] At least one owner account is both `is_admin = true` and `access_status = 'approved'`.
+- [ ] Signup availability matches the intended network (`true` for an open waitlist, `false` for a closed group).
 - [ ] Sensitive posts and routines use **Private** or **Friends**, not **Public**.
 - [ ] Production and local redirect URLs are exact and expected.
 
@@ -335,6 +357,14 @@ Set Supabase Auth's Site URL to the exact deployed Pages URL, including the repo
 ### A new visitor cannot sign up
 
 Check both controls: `VITE_ALLOW_SIGNUP` must not be `false`, and Supabase Auth's **Allow new users to sign up** setting must be enabled. After changing the GitHub variable, redeploy the Pages workflow because Vite embeds the value at build time.
+
+### Everyone stays on “Approval system unavailable”
+
+Apply [`supabase/migrations/20260802100000_admin_approval_waitlist.sql`](supabase/migrations/20260802100000_admin_approval_waitlist.sql) in Supabase SQL Editor. Then run [`supabase/verify-security.sql`](supabase/verify-security.sql), sign out, and sign back in.
+
+### No one can open the admin console
+
+Bootstrap the owner with the SQL in step 4. Check that the email matches exactly and that the query updated one row. Never put an admin service key in the frontend to work around this.
 
 ### Login is not remembered
 

@@ -1,15 +1,17 @@
-import { ArrowDown, ArrowUp, Check, ChevronRight, Database, Download, Dumbbell, Edit3, FolderCog, GripVertical, LogOut, Plus, RotateCcw, Search, Settings as SettingsIcon, Trash2, UserRound } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, ChevronRight, Database, Download, Dumbbell, Edit3, FolderCog, GripVertical, LogOut, Plus, RotateCcw, Search, Settings as SettingsIcon, ShieldCheck, Trash2, UserRound } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import Modal from '../components/Modal'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 import { findSimilarExercises, fuzzySearch } from '../utils/fuzzySearch'
+import { useNavigate } from '../router'
 
 const tabs = [['profile', UserRound, 'Profile'], ['categories', FolderCog, 'Categories'], ['exercises', Dumbbell, 'Exercises'], ['data', Database, 'Data']]
 const exerciseTypes = ['all', 'strength', 'cardio', 'mobility', 'conditioning', 'other']
 
 export default function Settings() {
-  const { user, isDemo, signOut } = useAuth()
+  const { user, isDemo, isAdmin, signOut } = useAuth()
+  const navigate = useNavigate()
   const {
     categories, exercises, exerciseCatalog, sessions, sets, preferences, profiles,
     addCategory, updateCategory, moveCategory, archiveCategory, saveExercise,
@@ -121,6 +123,7 @@ export default function Settings() {
           <button className="primary-button compact">Save profile <Check /></button>
         </form>
         <div className="glass-card account-row"><span className="avatar small">{(preferences.display_name || user.email).slice(0, 2).toUpperCase()}</span><span><strong>{user.email}</strong><small>{isDemo ? 'Local demo athlete' : 'Supabase account'}</small></span>{!isDemo && <button className="danger-button" onClick={signOut}><LogOut /> Sign out</button>}</div>
+        {isAdmin && <button className="glass-card data-action admin-entry" onClick={() => navigate('/admin')}><span className="data-icon"><ShieldCheck /></span><span><strong>Admin console</strong><small>Review waitlist requests and manage member access</small></span><ChevronRight /></button>}
       </section>}
 
       {tab === 'categories' && <section className="settings-panel">
