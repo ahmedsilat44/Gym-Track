@@ -1,6 +1,6 @@
 import { Check, Copy, Dumbbell, Heart, MessageCircle, MoreHorizontal, Plus, Search, Send, Share2, Trash2, UserCheck, UserPlus, Users, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from '../router'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 

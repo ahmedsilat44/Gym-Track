@@ -1,6 +1,6 @@
 import { ArrowRight, Bell, CalendarDays, Dumbbell, Flame, Play, Trophy } from 'lucide-react'
 import { useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from '../router'
 import MiniChart from '../components/MiniChart'
 import ProgressRing from '../components/ProgressRing'
 import { useAuth } from '../context/AuthContext'

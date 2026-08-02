@@ -1,6 +1,6 @@
 import { CalendarDays, Check, Clock3, CopyPlus, Dumbbell, Edit3, Play, Plus, Send, Share2, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from '../router'
 import Modal from '../components/Modal'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'

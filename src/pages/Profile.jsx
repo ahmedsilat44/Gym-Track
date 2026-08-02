@@ -1,6 +1,6 @@
 import { ArrowLeft, CalendarDays, Check, Copy, Dumbbell, Edit3, MessageCircle, Share2, UserCheck, UserPlus } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from '../router'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 

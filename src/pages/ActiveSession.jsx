@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronLeft, ChevronRight, CircleStop, Dumbbell, Flame, GripVertical, ListPlus, Plus, RotateCcw, Search, Target, TimerReset, Trash2, Trophy, Users } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from '../router'
 import Modal from '../components/Modal'
 import Stepper from '../components/Stepper'
 import { useData } from '../context/DataContext'
@@ -11,6 +11,17 @@ const formatRestTimer = (seconds) => {
   const parts = [Math.floor((seconds % 3600) / 60), seconds % 60]
   if (seconds >= 3600) parts.unshift(Math.floor(seconds / 3600))
   return parts.map((value) => String(value).padStart(2, '0')).join(':')
+}
+const estimatedOneRepMax = (set) => Number(set.weight) * (1 + Number(set.reps) / 30)
+const bestSet = (items) => items.reduce((best, item) => {
+  if (!best) return item
+  const difference = estimatedOneRepMax(item) - estimatedOneRepMax(best)
+  return difference > 0 || (difference === 0 && (Number(item.weight) > Number(best.weight) || (Number(item.weight) === Number(best.weight) && Number(item.reps) > Number(best.reps)))) ? item : best
+}, null)
+const formatTrackedSet = (set, exercise) => {
+  if (!set) return '—'
+  const weightUnit = ['reps', 'seconds'].includes(exercise.unit) ? 'kg' : exercise.unit
+  return `${Number(set.weight).toLocaleString()} ${weightUnit} × ${set.reps} ${exercise.unit === 'seconds' ? 'sec' : 'reps'}`
 }
 const exerciseTypes = ['all', 'strength', 'cardio', 'mobility', 'conditioning', 'other']
 
@@ -43,6 +54,11 @@ export default function ActiveSession() {
     return Number.isFinite(timestamp) && timestamp > latest ? timestamp : latest
   }, 0), [sessionSets])
   const exerciseSets = sessionSets.filter((item) => item.exercise_id === exercise?.id).sort((a, b) => a.set_number - b.set_number)
+  const previousExerciseSets = sets.filter((item) => item.exercise_id === exercise?.id && item.session_id !== activeWorkout?.sessionId)
+  const previousPr = bestSet(previousExerciseSets)
+  const lastSessionId = [...previousExerciseSets].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]?.session_id
+  const lastSessionBest = bestSet(previousExerciseSets.filter((item) => item.session_id === lastSessionId))
+  const currentSessionBest = bestSet(exerciseSets)
   const target = exercise ? activeWorkout?.targets?.[exercise.id] : null
   const availableExercises = useMemo(() => fuzzySearch(
     exercises.filter((item) => !item.is_archived && !activeWorkout?.exerciseIds.includes(item.id) && (exerciseType === 'all' || (item.exercise_type || 'strength') === exerciseType)),
@@ -214,6 +230,12 @@ export default function ActiveSession() {
       <button className="session-exercise-manager-button" onClick={() => { setManagerError(''); setShowExerciseManager(true) }}><ListPlus /> Add or remove exercises</button>
 
       {target && <div className="planned-target glass-card"><Target /><span><small>Planned target</small><strong>{target.targetSets} sets × {target.repsMin}{target.repsMax !== target.repsMin ? `–${target.repsMax}` : ''} {exercise.unit === 'seconds' ? 'sec' : 'reps'}{target.weight != null ? ` at ${target.weight} ${exercise.unit}` : ''}</strong>{target.notes && <em>{target.notes}</em>}</span><small>{target.restSeconds}s rest</small></div>}
+
+      <section className="session-benchmarks glass-card" aria-label={`${exercise.name} performance reference`}>
+        <div><span className="eyebrow">Previous PR</span><strong>{formatTrackedSet(previousPr, exercise)}</strong><small>{previousPr ? new Date(previousPr.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : 'No earlier record'}</small></div>
+        <div><span className="eyebrow">Last session</span><strong>{formatTrackedSet(lastSessionBest, exercise)}</strong><small>{lastSessionBest ? new Date(lastSessionBest.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : 'First session'}</small></div>
+        <div><span className="eyebrow">This session</span><strong>{formatTrackedSet(currentSessionBest, exercise)}</strong><small>{exerciseSets.length} set{exerciseSets.length === 1 ? '' : 's'} logged</small></div>
+      </section>
 
       {sessionError && <div className="notice-toast error" role="alert">{sessionError}</div>}
 

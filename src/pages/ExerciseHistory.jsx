@@ -1,6 +1,6 @@
 import { ArrowLeft, CalendarDays, Dumbbell, Trophy } from 'lucide-react'
 import { useMemo } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from '../router'
 import MiniChart from '../components/MiniChart'
 import { useData } from '../context/DataContext'
 

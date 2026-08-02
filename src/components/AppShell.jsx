@@ -1,5 +1,5 @@
 import { CalendarDays, Dumbbell, Gauge, House, Settings, Users } from 'lucide-react'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from '../router'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 

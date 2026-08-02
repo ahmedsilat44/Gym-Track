@@ -1,6 +1,6 @@
 import { ArrowRight, CalendarDays, Dumbbell, Flame, Target, Trophy } from 'lucide-react'
 import { useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from '../router'
 import MiniChart from '../components/MiniChart'
 import ProgressRing from '../components/ProgressRing'
 import { useData } from '../context/DataContext'
@@ -16,7 +16,22 @@ export default function Progress() {
     const thisMonth = completed.filter((session) => { const date = new Date(session.started_at); const now = new Date(); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear() })
     return { months, volume, totalVolume, thisMonth }
   }, [completed, sets])
-  const activeCategories = categories.filter((item) => !item.is_archived)
+  const categoryFrequency = useMemo(() => {
+    const completedIds = new Set(completed.map((session) => session.id))
+    const exerciseCategories = new Map(exercises.map((exercise) => [exercise.id, exercise.category_id]))
+    const sessionIdsByCategory = new Map(categories.filter((category) => !category.is_archived).map((category) => [category.id, new Set()]))
+    sets.forEach((set) => {
+      if (!completedIds.has(set.session_id)) return
+      const categoryId = exerciseCategories.get(set.exercise_id)
+      if (sessionIdsByCategory.has(categoryId)) sessionIdsByCategory.get(categoryId).add(set.session_id)
+    })
+    return categories.filter((category) => !category.is_archived).map((category) => ({
+      ...category,
+      sessionCount: sessionIdsByCategory.get(category.id)?.size ?? 0,
+      exerciseCount: exercises.filter((exercise) => !exercise.is_archived && exercise.category_id === category.id).length,
+    }))
+  }, [categories, completed, exercises, sets])
+  const recentPrs = useMemo(() => sets.filter((set) => set.is_pr).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5), [sets])
 
   return (
     <main className="content-page progress-page">
@@ -25,9 +40,9 @@ export default function Progress() {
 
       <section className="section-block"><div className="section-heading"><div><span className="eyebrow">Six month trend</span><h2>Volume over time</h2></div></div><div className="glass-card chart-card large"><MiniChart values={stats.volume} labels={stats.months.map((date) => date.toLocaleDateString(undefined, { month: 'short' }))} format={(value) => `${Math.round(value / 1000)}k`} /></div></section>
 
-      <section className="section-block"><div className="section-heading"><div><span className="eyebrow">Training balance</span><h2>Category frequency</h2></div></div><div className="goal-list">{activeCategories.map((category, index) => { const count = completed.filter((session) => session.category_id === category.id).length; const exerciseCount = exercises.filter((item) => !item.is_archived && item.category_id === category.id).length; const percent = completed.length ? count / completed.length * 100 : 0; return <div className="glass-card goal-row" key={category.id}><span className={`goal-icon tone-${index % 4}`}><Dumbbell /></span><span className="goal-copy"><strong>{category.name}</strong><small>{count} sessions · {exerciseCount} exercises</small></span><ProgressRing value={percent} size={56} /></div> })}</div></section>
+      <section className="section-block"><div className="section-heading"><div><span className="eyebrow">Training balance</span><h2>Category frequency</h2></div></div><div className="goal-list">{categoryFrequency.map((category, index) => { const percent = completed.length ? category.sessionCount / completed.length * 100 : 0; return <div className="glass-card goal-row" key={category.id}><span className={`goal-icon tone-${index % 4}`}><Dumbbell /></span><span className="goal-copy"><strong>{category.name}</strong><small>{category.sessionCount} sessions · {category.exerciseCount} exercises</small></span><ProgressRing value={percent} size={56} /></div> })}</div></section>
 
-      <section className="section-block"><div className="section-heading"><div><span className="eyebrow">Personal bests</span><h2>Record board</h2></div><span className="count-pill">{records.length}</span></div><div className="history-list">{[...records].sort((a, b) => b.best_est_1rm - a.best_est_1rm).map((record, index) => { const exercise = exercises.find((item) => item.id === record.exercise_id); return <button className="glass-card history-row" key={record.exercise_id} onClick={() => navigate(`/exercise/${record.exercise_id}`)}><span className={`record-rank ${index < 3 ? 'top' : ''}`}>{index < 3 ? <Trophy /> : String(index + 1).padStart(2, '0')}</span><span><strong>{exercise?.name || 'Archived exercise'}</strong><small>{new Date(record.achieved_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</small></span><span className="metric">{Number(record.best_weight).toLocaleString()}<small>{exercise?.unit || 'kg'}</small></span><ArrowRight /></button> })}{!records.length && <div className="empty-state glass-card"><Trophy /><h3>Your record board is empty</h3><p>Complete a set to claim your first PR.</p></div>}</div></section>
+      <section className="section-block"><div className="section-heading"><div><span className="eyebrow">Latest breakthroughs</span><h2>Recent PRs</h2></div><button onClick={() => navigate('/records')}>All exercise PRs <ArrowRight /></button></div><div className="history-list">{recentPrs.map((set) => { const exercise = exercises.find((item) => item.id === set.exercise_id); const weightUnit = ['reps', 'seconds'].includes(exercise?.unit) ? 'kg' : exercise?.unit || 'kg'; return <button className="glass-card history-row" key={set.id} onClick={() => navigate(`/exercise/${set.exercise_id}`)}><span className="record-rank top"><Trophy /></span><span><strong>{exercise?.name || 'Archived exercise'}</strong><small>{new Date(set.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })} · {set.reps} {exercise?.unit === 'seconds' ? 'sec' : 'reps'}</small></span><span className="metric">{Number(set.weight).toLocaleString()}<small>{weightUnit}</small></span><ArrowRight /></button> })}{!recentPrs.length && <div className="empty-state glass-card"><Trophy /><h3>No recent PRs</h3><p>Complete a stronger set to add one here.</p></div>}</div></section>
       <section className="quick-stats"><div className="glass-card"><CalendarDays /><span><small>Sessions</small><strong>{completed.length}</strong></span></div><div className="glass-card"><Flame /><span><small>This month</small><strong>{stats.thisMonth.length}</strong></span></div><div className="glass-card"><Trophy /><span><small>Records</small><strong>{records.length}</strong></span></div></section>
     </main>
   )

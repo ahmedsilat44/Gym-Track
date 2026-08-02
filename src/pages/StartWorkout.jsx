@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Dumbbell, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from '../router'
 import { useData } from '../context/DataContext'
 import { fuzzySearch } from '../utils/fuzzySearch'
 
