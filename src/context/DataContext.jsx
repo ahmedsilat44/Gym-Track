@@ -266,7 +266,7 @@ export function DataProvider({ children }) {
       }
       await refresh()
     }
-    const active = { sessionId, categoryId, exerciseIds, startedAt: new Date().toISOString(), routineDayId: options.routineDayId ?? null, targets: options.targets ?? {} }
+    const active = { sessionId, categoryId, exerciseIds, currentExerciseId: exerciseIds[0], startedAt: new Date().toISOString(), routineDayId: options.routineDayId ?? null, targets: options.targets ?? {} }
     setActiveWorkout(active)
     localStorage.setItem(activeStorageKey, JSON.stringify(active))
     return active
@@ -304,7 +304,38 @@ export function DataProvider({ children }) {
       await refresh()
     }
 
-    const next = { ...activeWorkout, exerciseIds: [...activeWorkout.exerciseIds, exerciseId] }
+    const next = { ...activeWorkout, exerciseIds: [...activeWorkout.exerciseIds, exerciseId], currentExerciseId: exerciseId }
+    setActiveWorkout(next)
+    localStorage.setItem(activeStorageKey, JSON.stringify(next))
+    return next
+  }
+
+  const selectActiveExercise = (exerciseId) => {
+    if (!activeWorkout?.exerciseIds.includes(exerciseId) || activeWorkout.currentExerciseId === exerciseId) return activeWorkout
+    const next = { ...activeWorkout, currentExerciseId: exerciseId }
+    setActiveWorkout(next)
+    localStorage.setItem(activeStorageKey, JSON.stringify(next))
+    return next
+  }
+
+  const reorderActiveExercises = async (exerciseIds) => {
+    if (!activeWorkout) throw new Error('No workout is active.')
+    if (exerciseIds.length !== activeWorkout.exerciseIds.length || new Set(exerciseIds).size !== exerciseIds.length || exerciseIds.some((id) => !activeWorkout.exerciseIds.includes(id))) {
+      throw new Error('Workout exercise order is invalid.')
+    }
+    const order = new Map(exerciseIds.map((id, index) => [id, index]))
+    if (isDemo) {
+      persistDemo({
+        ...data,
+        sessionExercises: data.sessionExercises.map((item) => item.session_id === activeWorkout.sessionId && order.has(item.exercise_id) ? { ...item, sort_order: order.get(item.exercise_id) } : item),
+      })
+    } else {
+      const results = await Promise.all(exerciseIds.map((exerciseId, sort_order) => supabase.from('session_exercises').update({ sort_order }).eq('session_id', activeWorkout.sessionId).eq('exercise_id', exerciseId)))
+      const failed = results.find((result) => result.error)
+      if (failed) throw failed.error
+      await refresh()
+    }
+    const next = { ...activeWorkout, exerciseIds }
     setActiveWorkout(next)
     localStorage.setItem(activeStorageKey, JSON.stringify(next))
     return next
@@ -329,7 +360,7 @@ export function DataProvider({ children }) {
     const exerciseIds = activeWorkout.exerciseIds.filter((id) => id !== exerciseId)
     const targets = { ...(activeWorkout.targets ?? {}) }
     delete targets[exerciseId]
-    const next = { ...activeWorkout, exerciseIds, targets }
+    const next = { ...activeWorkout, exerciseIds, currentExerciseId: activeWorkout.currentExerciseId === exerciseId ? exerciseIds[0] : activeWorkout.currentExerciseId, targets }
     setActiveWorkout(next)
     localStorage.setItem(activeStorageKey, JSON.stringify(next))
     return next
@@ -341,21 +372,48 @@ export function DataProvider({ children }) {
     const numericReps = Number(reps)
     const numericWeight = Number(weight)
     if (!Number.isInteger(numericReps) || numericReps < 1 || numericReps > 100000) throw new Error('Reps or duration must be a whole number between 1 and 100,000.')
-    if (!Number.isFinite(numericWeight) || numericWeight < 0 || numericWeight > 99999999) throw new Error('Weight must be between 0 and 99,999,999.')
+    if (weight === '' || weight == null || !Number.isFinite(numericWeight) || numericWeight < 0 || numericWeight > 99999999) throw new Error('Weight must be between 0 and 99,999,999.')
     const existing = data.sets.filter((item) => item.session_id === activeWorkout.sessionId && item.exercise_id === exerciseId)
     const row = { id: crypto.randomUUID(), session_id: activeWorkout.sessionId, exercise_id: exerciseId, set_number: existing.length + 1, reps: numericReps, weight: numericWeight, created_at: new Date().toISOString() }
     if (isDemo) {
       const previous = calculateRecords(data.sets).find((item) => item.exercise_id === exerciseId)
       const estimated = row.weight * (1 + row.reps / 30)
       row.is_pr = !previous || estimated > previous.best_est_1rm || row.weight > previous.best_weight
-      persistDemo({ ...data, sets: [row, ...data.sets] })
-      return row
+      const targetWeight = activeWorkout.targets?.[exerciseId]?.weight
+      const plannedWeightUpdated = row.is_pr && activeWorkout.routineDayId && targetWeight != null && row.weight > Number(targetWeight)
+      persistDemo({
+        ...data,
+        sets: [row, ...data.sets],
+        routineExercises: plannedWeightUpdated ? data.routineExercises.map((item) => item.routine_day_id === activeWorkout.routineDayId && item.exercise_id === exerciseId ? { ...item, target_weight: row.weight } : item) : data.routineExercises,
+      })
+      if (plannedWeightUpdated) {
+        const next = { ...activeWorkout, targets: { ...activeWorkout.targets, [exerciseId]: { ...activeWorkout.targets[exerciseId], weight: row.weight } } }
+        setActiveWorkout(next)
+        localStorage.setItem(activeStorageKey, JSON.stringify(next))
+      }
+      return { ...row, planned_weight_updated: plannedWeightUpdated }
     }
     const { data: inserted, error: insertError } = await supabase.from('sets').insert({ ...row, id: undefined, user_id: user.id }).select().single()
     if (insertError) throw insertError
-    await refresh()
     const { data: saved } = await supabase.from('sets').select('*').eq('id', inserted.id).single()
-    return saved ?? inserted
+    const completed = saved ?? inserted
+    const targetWeight = activeWorkout.targets?.[exerciseId]?.weight
+    const shouldRaisePlannedWeight = completed.is_pr && activeWorkout.routineDayId && targetWeight != null && numericWeight > Number(targetWeight)
+    let plannedWeightUpdated = false
+    let plannedWeightUpdateError = null
+    if (shouldRaisePlannedWeight) {
+      const result = await supabase.from('routine_exercises').update({ target_weight: numericWeight }).eq('routine_day_id', activeWorkout.routineDayId).eq('exercise_id', exerciseId).eq('user_id', user.id)
+      if (result.error) {
+        plannedWeightUpdateError = result.error.message || 'Could not raise planned weight.'
+      } else {
+        plannedWeightUpdated = true
+        const next = { ...activeWorkout, targets: { ...activeWorkout.targets, [exerciseId]: { ...activeWorkout.targets[exerciseId], weight: numericWeight } } }
+        setActiveWorkout(next)
+        localStorage.setItem(activeStorageKey, JSON.stringify(next))
+      }
+    }
+    await refresh()
+    return { ...completed, planned_weight_updated: plannedWeightUpdated, planned_weight_update_error: plannedWeightUpdateError }
   }
 
   const deleteSet = async (id) => {
@@ -609,7 +667,7 @@ export function DataProvider({ children }) {
   const value = {
     ...data, records, activeWorkout, loading, error, refresh,
     addCategory, updateCategory, moveCategory, archiveCategory, saveExercise, assignExerciseCategory, addCatalogExercise, archiveExercise,
-    startWorkout, startPlannedWorkout, addActiveExercise, removeActiveExercise, logSet, deleteSet, endWorkout, updatePreferences,
+    startWorkout, startPlannedWorkout, addActiveExercise, selectActiveExercise, reorderActiveExercises, removeActiveExercise, logSet, deleteSet, endWorkout, updatePreferences,
     saveProfile, sendFriendRequest, respondToFriendRequest, removeFriend,
     saveRoutine, deleteRoutine, shareRoutine, shareProgress, createPost, toggleLike, addComment, deletePost, copyRoutine, resetDemo,
   }

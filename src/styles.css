@@ -328,7 +328,7 @@ svg { flex: 0 0 auto; }
 .social-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 18px; align-items: start; }
 .social-main { min-width: 0; }
 .post-composer { padding: 14px; display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 11px; border-radius: var(--radius-xl); }
-.post-composer textarea { min-height: 58px; border: 0; background: transparent; resize: none; }
+.post-composer textarea { min-width: 0; min-height: 58px; border: 0; background: transparent; resize: none; }
 .composer-actions { display: flex; align-items: center; gap: 8px; }
 .composer-actions select { width: 125px; min-height: 44px; }
 .post-visibility { display: inline-flex; margin-left: 5px; padding: 3px 6px; border-radius: 99px; background: rgba(179,185,255,.09); color: var(--indigo); font-style: normal; text-transform: uppercase; }
@@ -344,13 +344,14 @@ svg { flex: 0 0 auto; }
 .feed-post { overflow: hidden; border-radius: var(--radius-xl); }
 .feed-post > header { min-height: 74px; padding: 14px 17px; display: flex; align-items: center; gap: 11px; }
 .post-author { min-width: 0; flex: 1; display: flex; align-items: center; gap: 11px; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; }
-.post-author > span:last-child { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.post-author > span:last-child { min-width: 0; display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+.post-author strong, .post-author small { overflow-wrap: anywhere; }
 .post-author:hover strong { color: var(--primary); }
 .feed-post > header small { font: .62rem 'JetBrains Mono'; }
 .feed-post > header > svg { width: 18px; color: var(--muted); }
 .post-menu { width: 38px; height: 38px; display: grid; place-items: center; border: 0; background: transparent; }
 .post-menu svg { width: 17px; }
-.post-caption { margin: 0; padding: 0 18px 16px; line-height: 1.6; white-space: pre-wrap; }
+.post-caption { margin: 0; padding: 0 18px 16px; line-height: 1.6; overflow-wrap: anywhere; white-space: pre-wrap; }
 .workout-share-card, .routine-share-card { margin: 0 16px 16px; min-height: 112px; padding: 16px; display: flex; align-items: center; gap: 14px; border-radius: 17px; background: linear-gradient(135deg, rgba(87,241,219,.08), rgba(179,185,255,.05)); border: 1px solid rgba(87,241,219,.13); }
 .workout-share-card > span, .routine-share-card > span { width: 48px; height: 48px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 15px; background: rgba(87,241,219,.12); color: var(--primary); }
 .workout-share-card > div, .routine-share-card > div { min-width: 0; flex: 1; }
@@ -365,7 +366,7 @@ svg { flex: 0 0 auto; }
 .comment-area { padding: 12px 16px 16px; display: grid; gap: 10px; border-top: 1px solid rgba(186,202,197,.08); background: rgba(6,14,32,.2); }
 .comment { display: flex; gap: 9px; }
 .avatar.tiny { width: 30px; height: 30px; border-width: 1px; font-size: .63rem; }
-.comment p { flex: 1; margin: 0; padding: 9px 11px; border-radius: 13px; background: var(--surface-high); font-size: .78rem; line-height: 1.45; }
+.comment p { min-width: 0; flex: 1; margin: 0; padding: 9px 11px; border-radius: 13px; background: var(--surface-high); font-size: .78rem; line-height: 1.45; overflow-wrap: anywhere; }
 .comment p strong { margin-right: 4px; }
 .comment p small { display: block; margin-top: 4px; font: .56rem 'JetBrains Mono'; }
 .comment-area > form { display: grid; grid-template-columns: 1fr 40px; gap: 7px; }
@@ -388,6 +389,8 @@ svg { flex: 0 0 auto; }
 .friend-status.static { cursor: default; }
 .friend-status svg { width: 15px; }
 .friend-section > .search-box { margin-bottom: 14px; }
+.search-help { margin: -6px 0 14px; color: var(--muted); font-size: .7rem; line-height: 1.45; }
+.discover-empty { grid-column: 1 / -1; }
 .friends-panel > .form-note { margin: 0; }
 
 .planned-target { min-height: 74px; margin-bottom: 14px; padding: 13px 16px; display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 11px; border-radius: var(--radius-lg); color: var(--primary); }
@@ -436,11 +439,15 @@ svg { flex: 0 0 auto; }
 .session-exercise-roster, .session-exercise-catalog { display: grid; gap: 9px; }
 .session-exercise-catalog { margin-top: 24px; }
 .session-exercise-row { min-height: 60px; display: flex; align-items: center; gap: 12px; padding: 9px 11px 9px 14px; border-radius: 13px; background: var(--surface-lowest); }
-.session-exercise-row > span, .session-add-list button > span { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 3px; text-align: left; }
+.session-exercise-row > span:not(.session-roster-actions), .session-add-list button > span { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 3px; text-align: left; }
 .session-exercise-row small, .session-add-list small { color: var(--muted); font: .62rem 'JetBrains Mono'; }
-.session-exercise-row > button { width: 38px; height: 38px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 10px; background: rgba(255,180,171,.07); color: var(--error); }
-.session-exercise-row > button:disabled { opacity: .28; cursor: not-allowed; }
-.session-exercise-row > button svg { width: 17px; }
+.session-exercise-row.is-dragging { opacity: .42; }
+.session-drag-handle { width: 18px; color: var(--muted); cursor: grab; }
+.session-roster-actions { display: flex; flex: 0 0 auto; gap: 4px; }
+.session-roster-actions button { width: 34px; height: 34px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 9px; background: rgba(186,202,197,.05); color: var(--muted); }
+.session-roster-actions button.danger-icon { background: rgba(255,180,171,.07); color: var(--error); }
+.session-roster-actions button:disabled { opacity: .28; cursor: not-allowed; }
+.session-roster-actions button svg { width: 15px; }
 .session-exercise-catalog .exercise-filter-row { margin: 2px 0 3px; }
 .session-add-list { max-height: 290px; overflow-y: auto; display: grid; gap: 7px; padding-right: 3px; }
 .session-add-list button { min-height: 58px; display: flex; align-items: center; gap: 10px; padding: 9px 12px 9px 14px; border: 1px solid rgba(186,202,197,.08); border-radius: 12px; background: var(--surface-lowest); color: var(--text); }
@@ -455,6 +462,10 @@ svg { flex: 0 0 auto; }
 .stepper-value { display: flex; justify-content: center; align-items: baseline; gap: 8px; }
 .stepper-value strong { font: 800 clamp(2.6rem, 12vw, 4rem) 'Hanken Grotesk'; letter-spacing: -.05em; font-variant-numeric: tabular-nums; }
 .stepper-value span { color: var(--muted); font: .7rem 'JetBrains Mono'; text-transform: uppercase; }
+.weight-input-control { width: min(100%, 300px); min-height: 74px; margin: 9px auto 0; display: flex; align-items: baseline; justify-content: center; gap: 8px; padding: 0 18px; border: 1px solid rgba(87,241,219,.24); border-radius: 17px; background: rgba(87,241,219,.045); }
+.weight-input-control:focus-within { border-color: rgba(87,241,219,.65); box-shadow: 0 0 0 3px rgba(87,241,219,.08); }
+.weight-input-control input { width: 100%; min-width: 0; padding: 8px 0; border: 0; outline: 0; background: transparent; color: var(--text); font: 800 clamp(2.4rem, 11vw, 3.7rem) 'Hanken Grotesk'; letter-spacing: -.05em; text-align: right; font-variant-numeric: tabular-nums; }
+.weight-input-control span { color: var(--muted); font: .7rem 'JetBrains Mono'; text-transform: uppercase; }
 .stepper-divider { height: 1px; margin: 22px 0; background: rgba(186,202,197,.1); }
 .log-set-button { width: 100%; min-height: 62px; margin-top: 24px; display: flex; justify-content: center; align-items: center; gap: 10px; border: 0; border-radius: 17px; background: var(--primary); color: var(--on-primary); font: 700 1.05rem 'Hanken Grotesk'; box-shadow: 0 12px 30px rgba(87,241,219,.12); }
 .sets-section { margin-top: 34px; }
@@ -644,7 +655,7 @@ input:focus, select:focus, textarea:focus { border-color: rgba(87,241,219,.6); b
   .login-card { margin-block: -18px 34px; z-index: 1; }
   .routine-grid, .friend-grid { grid-template-columns: 1fr; }
   .social-layout { grid-template-columns: 1fr; }
-  .social-sidebar { position: static; }
+  .social-sidebar { display: none; }
   .exercise-category-board { grid-template-columns: 1fr; }
   .profile-content-grid { grid-template-columns: 1fr; }
 }
@@ -661,15 +672,35 @@ input:focus, select:focus, textarea:focus { border-color: rgba(87,241,219,.6); b
   .target-grid label:last-child { grid-column: 1 / -1; }
   .planned-exercise-title { grid-template-columns: 1fr 36px; }
   .planned-exercise-title .exercise-mini { display: none; }
-  .post-composer { grid-template-columns: 36px 1fr; }
+  .social-page .page-header { align-items: center; }
+  .social-page .header-badge { width: 44px; height: 44px; }
+  .social-tabs { width: 100%; margin-bottom: 18px; }
+  .post-composer { grid-template-columns: 36px minmax(0, 1fr); padding: 12px; gap: 9px; border-radius: var(--radius-lg); }
   .post-composer .avatar { width: 36px; height: 36px; }
-  .composer-actions { grid-column: 1 / -1; }
-  .composer-actions select, .composer-actions button { flex: 1; }
+  .post-composer textarea { width: 100%; padding-inline: 9px; }
+  .composer-actions { grid-column: 1 / -1; width: 100%; }
+  .composer-actions select, .composer-actions button { min-width: 0; flex: 1; }
   .shared-routine-shelf > div:last-child { grid-template-columns: 1fr; }
+  .community-routine > button { width: 100%; }
+  .feed-list { gap: 11px; }
+  .feed-post { border-radius: var(--radius-lg); }
+  .feed-post > header { min-height: 66px; padding: 12px; }
+  .post-author { gap: 9px; }
+  .post-author .avatar { width: 38px; height: 38px; }
+  .post-visibility { margin: 4px 0 0; width: max-content; }
+  .post-caption { padding: 0 14px 14px; }
+  .workout-share-card, .routine-share-card { margin: 0 12px 12px; padding: 13px; align-items: flex-start; }
+  .workout-share-card > span, .routine-share-card > span { width: 42px; height: 42px; border-radius: 12px; }
   .routine-share-card { align-items: flex-start; flex-wrap: wrap; }
   .routine-share-card button { width: 100%; }
-  .friend-card { flex-wrap: wrap; }
-  .friend-card > button, .friend-card > div { margin-left: 64px; }
+  .comment-area { padding-inline: 12px; }
+  .friends-panel { gap: 28px; }
+  .friend-card { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 10px; padding: 12px; }
+  .friend-card > .avatar { grid-column: 1; grid-row: 1; width: 46px; height: 46px; }
+  .friend-card > span:nth-child(2) { grid-column: 2; grid-row: 1; }
+  .friend-card > div, .friend-card > button:not(.avatar), .friend-card > .friend-status { grid-column: 2; width: max-content; max-width: 100%; margin: 0; justify-self: start; }
+  .friend-card > div { flex-wrap: wrap; }
+  .friend-card p { overflow-wrap: anywhere; }
   .planned-target { grid-template-columns: 30px 1fr; }
   .planned-target > small { grid-column: 2; }
   .hero-card { min-height: 230px; align-items: flex-end; }

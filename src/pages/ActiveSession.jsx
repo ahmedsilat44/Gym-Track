@@ -1,5 +1,5 @@
-import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, CircleStop, Dumbbell, Flame, ListPlus, Plus, RotateCcw, Search, Target, TimerReset, Trash2, Trophy, Users } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronLeft, ChevronRight, CircleStop, Dumbbell, Flame, GripVertical, ListPlus, Plus, RotateCcw, Search, Target, TimerReset, Trash2, Trophy, Users } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Modal from '../components/Modal'
 import Stepper from '../components/Stepper'
@@ -16,7 +16,7 @@ const exerciseTypes = ['all', 'strength', 'cardio', 'mobility', 'conditioning', 
 
 export default function ActiveSession() {
   const navigate = useNavigate()
-  const { activeWorkout, categories, exercises, sets, loading, addActiveExercise, removeActiveExercise, logSet, deleteSet, endWorkout, shareProgress } = useData()
+  const { activeWorkout, categories, exercises, sets, loading, addActiveExercise, selectActiveExercise, reorderActiveExercises, removeActiveExercise, logSet, deleteSet, endWorkout, shareProgress } = useData()
   const [exerciseIndex, setExerciseIndex] = useState(0)
   const [weight, setWeight] = useState(20)
   const [reps, setReps] = useState(8)
@@ -32,6 +32,9 @@ export default function ActiveSession() {
   const [exerciseQuery, setExerciseQuery] = useState('')
   const [exerciseType, setExerciseType] = useState('all')
   const [managerError, setManagerError] = useState('')
+  const [sessionError, setSessionError] = useState('')
+  const [draggedExercise, setDraggedExercise] = useState(null)
+  const resumeSessionRef = useRef(null)
   const sessionExercises = activeWorkout?.exerciseIds.map((id) => exercises.find((item) => item.id === id)).filter(Boolean) ?? []
   const exercise = sessionExercises[exerciseIndex]
   const sessionSets = useMemo(() => sets.filter((item) => item.session_id === activeWorkout?.sessionId), [activeWorkout, sets])
@@ -70,22 +73,43 @@ export default function ActiveSession() {
   }, [activeWorkout, loading, navigate])
 
   useEffect(() => {
+    if (loading || !activeWorkout || resumeSessionRef.current === activeWorkout.sessionId) return
+    const latestSet = sessionSets.reduce((latest, item) => !latest || new Date(item.created_at).getTime() > new Date(latest.created_at).getTime() ? item : latest, null)
+    const rememberedId = activeWorkout.exerciseIds.includes(activeWorkout.currentExerciseId) ? activeWorkout.currentExerciseId : null
+    const exerciseId = rememberedId ?? latestSet?.exercise_id ?? activeWorkout.exerciseIds[0]
+    const index = activeWorkout.exerciseIds.indexOf(exerciseId)
+    setExerciseIndex(index >= 0 ? index : 0)
+    if (!rememberedId && exerciseId) selectActiveExercise(exerciseId)
+    resumeSessionRef.current = activeWorkout.sessionId
+  }, [activeWorkout, loading, selectActiveExercise, sessionSets])
+
+  useEffect(() => {
     if (exerciseIndex >= sessionExercises.length) setExerciseIndex(Math.max(0, sessionExercises.length - 1))
   }, [exerciseIndex, sessionExercises.length])
 
   const totalVolume = sessionSets.reduce((sum, set) => sum + Number(set.weight) * Number(set.reps), 0)
   const completedExercises = sessionExercises.filter((item) => sessionSets.some((set) => set.exercise_id === item.id)).length
 
+  const goToExercise = (index) => {
+    const nextIndex = Math.max(0, Math.min(index, sessionExercises.length - 1))
+    setExerciseIndex(nextIndex)
+    if (sessionExercises[nextIndex]) selectActiveExercise(sessionExercises[nextIndex].id)
+  }
+
   const submitSet = async () => {
     if (!exercise) return
     setBusy(true)
     setPrMessage('')
+    setSessionError('')
     try {
       const saved = await logSet({ exerciseId: exercise.id, reps, weight })
+      if (saved?.planned_weight_update_error) setSessionError(`Set logged, but planned weight could not update: ${saved.planned_weight_update_error}`)
       if (saved?.is_pr) {
-        setPrMessage(`New personal record on ${exercise.name}`)
+        setPrMessage(saved.planned_weight_updated ? `New personal record on ${exercise.name}. Planned weight raised to ${Number(weight).toLocaleString()} ${exercise.unit}.` : `New personal record on ${exercise.name}`)
         window.setTimeout(() => setPrMessage(''), 3500)
       }
+    } catch (caught) {
+      setSessionError(caught.message || 'Could not log this set.')
     } finally { setBusy(false) }
   }
 
@@ -127,6 +151,41 @@ export default function ActiveSession() {
     } finally { setBusy(false) }
   }
 
+  const applyExerciseOrder = async (exerciseIds) => {
+    if (exerciseIds.every((id, index) => id === activeWorkout.exerciseIds[index])) return
+    const selectedId = exercise?.id
+    setBusy(true)
+    setManagerError('')
+    try {
+      await reorderActiveExercises(exerciseIds)
+      const nextIndex = exerciseIds.indexOf(selectedId)
+      if (nextIndex >= 0) setExerciseIndex(nextIndex)
+    } catch (caught) {
+      setManagerError(caught.message || 'Could not reorder exercises.')
+    } finally { setBusy(false) }
+  }
+
+  const moveExercise = (exerciseId, direction) => {
+    const next = [...activeWorkout.exerciseIds]
+    const index = next.indexOf(exerciseId)
+    const destination = index + direction
+    if (index < 0 || destination < 0 || destination >= next.length) return
+    ;[next[index], next[destination]] = [next[destination], next[index]]
+    applyExerciseOrder(next)
+  }
+
+  const dropExercise = (event, destinationId) => {
+    event.preventDefault()
+    const exerciseId = event.dataTransfer.getData('text/plain') || draggedExercise
+    setDraggedExercise(null)
+    if (!exerciseId || exerciseId === destinationId) return
+    const next = activeWorkout.exerciseIds.filter((id) => id !== exerciseId)
+    const destination = next.indexOf(destinationId)
+    if (destination < 0) return
+    next.splice(destination, 0, exerciseId)
+    applyExerciseOrder(next)
+  }
+
   if (!activeWorkout || !exercise) return <div className="page-loading">Preparing your session…</div>
 
   return (
@@ -147,17 +206,22 @@ export default function ActiveSession() {
       {prMessage && <div className="pr-toast"><Trophy /> <span><strong>PR unlocked</strong><small>{prMessage}</small></span></div>}
 
       <div className="exercise-switcher">
-        <button disabled={exerciseIndex === 0} onClick={() => setExerciseIndex(exerciseIndex - 1)}><ChevronLeft /></button>
+        <button disabled={exerciseIndex === 0} onClick={() => goToExercise(exerciseIndex - 1)}><ChevronLeft /></button>
         <div><span className="eyebrow">Exercise {exerciseIndex + 1} of {sessionExercises.length}</span><h2>{exercise.name}</h2><small>{exercise.is_bodyweight ? 'Bodyweight movement' : exercise.unit.toUpperCase()}</small></div>
-        <button disabled={exerciseIndex === sessionExercises.length - 1} onClick={() => setExerciseIndex(exerciseIndex + 1)}><ChevronRight /></button>
+        <button disabled={exerciseIndex === sessionExercises.length - 1} onClick={() => goToExercise(exerciseIndex + 1)}><ChevronRight /></button>
       </div>
-      <div className="exercise-dots">{sessionExercises.map((item, index) => <button key={item.id} aria-label={`Go to ${item.name}`} className={`${index === exerciseIndex ? 'active' : ''} ${sessionSets.some((set) => set.exercise_id === item.id) ? 'complete' : ''}`} onClick={() => setExerciseIndex(index)} />)}</div>
+      <div className="exercise-dots">{sessionExercises.map((item, index) => <button key={item.id} aria-label={`Go to ${item.name}`} className={`${index === exerciseIndex ? 'active' : ''} ${sessionSets.some((set) => set.exercise_id === item.id) ? 'complete' : ''}`} onClick={() => goToExercise(index)} />)}</div>
       <button className="session-exercise-manager-button" onClick={() => { setManagerError(''); setShowExerciseManager(true) }}><ListPlus /> Add or remove exercises</button>
 
       {target && <div className="planned-target glass-card"><Target /><span><small>Planned target</small><strong>{target.targetSets} sets × {target.repsMin}{target.repsMax !== target.repsMin ? `–${target.repsMax}` : ''} {exercise.unit === 'seconds' ? 'sec' : 'reps'}{target.weight != null ? ` at ${target.weight} ${exercise.unit}` : ''}</strong>{target.notes && <em>{target.notes}</em>}</span><small>{target.restSeconds}s rest</small></div>}
 
+      {sessionError && <div className="notice-toast error" role="alert">{sessionError}</div>}
+
       <section className="logging-panel glass-card">
-        <Stepper label={exercise.is_bodyweight ? 'Added weight' : 'Weight'} value={weight} onChange={setWeight} step={exercise.unit === 'lb' ? 5 : 2.5} min={0} suffix={exercise.unit === 'reps' || exercise.unit === 'seconds' ? 'kg' : exercise.unit} decimals={1} />
+        <div className="stepper weight-entry">
+          <label className="eyebrow" htmlFor={`weight-${exercise.id}`}>{exercise.is_bodyweight ? 'Added weight' : 'Weight'}</label>
+          <div className="weight-input-control"><input id={`weight-${exercise.id}`} type="number" inputMode="decimal" min="0" max="99999999" step="any" value={weight} onChange={(event) => setWeight(event.target.value)} /><span>{exercise.unit === 'reps' || exercise.unit === 'seconds' ? 'kg' : exercise.unit}</span></div>
+        </div>
         <div className="stepper-divider" />
         <Stepper label={exercise.unit === 'seconds' ? 'Duration' : 'Reps'} value={reps} onChange={setReps} step={1} min={1} suffix={exercise.unit === 'seconds' ? 'sec' : 'reps'} />
         <button className="log-set-button" onClick={submitSet} disabled={busy}><Check /> {busy ? 'Saving…' : `Log set ${exerciseSets.length + 1}`}</button>
@@ -173,7 +237,7 @@ export default function ActiveSession() {
       </section>
 
       <div className="session-actions">
-        {exerciseIndex < sessionExercises.length - 1 && <button className="secondary-button" onClick={() => setExerciseIndex(exerciseIndex + 1)}>Next exercise <ArrowRight /></button>}
+        {exerciseIndex < sessionExercises.length - 1 && <button className="secondary-button" onClick={() => goToExercise(exerciseIndex + 1)}>Next exercise <ArrowRight /></button>}
         <button className="primary-button" onClick={() => setShowFinish(true)}><Dumbbell /> Finish workout</button>
       </div>
 
@@ -185,7 +249,7 @@ export default function ActiveSession() {
           <span className="eyebrow">In today’s workout</span>
           {sessionExercises.map((item, index) => {
             const hasSets = sessionSets.some((set) => set.exercise_id === item.id)
-            return <div className="session-exercise-row" key={item.id}><span><strong>{item.name}</strong><small>{index + 1} · {hasSets ? 'Sets logged' : 'Not started'}</small></span><button className="danger-icon" disabled={busy || hasSets || sessionExercises.length === 1} onClick={() => removeExercise(item.id)} aria-label={`Remove ${item.name} from today's workout`} title={hasSets ? 'Delete its logged sets first' : 'Remove from today only'}><Trash2 /></button></div>
+            return <div className={`session-exercise-row ${draggedExercise === item.id ? 'is-dragging' : ''}`} key={item.id} draggable={!busy} onDragStart={(event) => { setDraggedExercise(item.id); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', item.id) }} onDragEnd={() => setDraggedExercise(null)} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'move' }} onDrop={(event) => dropExercise(event, item.id)}><GripVertical className="session-drag-handle" aria-hidden="true" /><span><strong>{item.name}</strong><small>{index + 1} · {hasSets ? 'Sets logged' : 'Not started'}</small></span><span className="session-roster-actions"><button disabled={busy || index === 0} onClick={() => moveExercise(item.id, -1)} aria-label={`Move ${item.name} up`}><ArrowUp /></button><button disabled={busy || index === sessionExercises.length - 1} onClick={() => moveExercise(item.id, 1)} aria-label={`Move ${item.name} down`}><ArrowDown /></button><button className="danger-icon" disabled={busy || hasSets || sessionExercises.length === 1} onClick={() => removeExercise(item.id)} aria-label={`Remove ${item.name} from today's workout`} title={hasSets ? 'Delete its logged sets first' : 'Remove from today only'}><Trash2 /></button></span></div>
           })}
         </section>
         <section className="session-exercise-catalog">
