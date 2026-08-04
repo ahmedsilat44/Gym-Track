@@ -1,5 +1,5 @@
 ---
-name: Velocity Performance
+name: Spotter
 colors:
   surface: '#0b1326'
   surface-dim: '#0b1326'

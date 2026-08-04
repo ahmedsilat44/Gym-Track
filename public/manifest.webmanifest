@@ -1,7 +1,7 @@
 {
-  "name": "Velocity Performance Gym Tracker",
-  "short_name": "Velocity",
-  "description": "Log workouts, track volume, and measure personal records.",
+  "name": "Spotter",
+  "short_name": "Spotter",
+  "description": "Plan workouts, train with friends, and track personal records.",
   "start_url": "./#/",
   "scope": "./",
   "display": "standalone",

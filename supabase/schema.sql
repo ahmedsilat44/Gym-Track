@@ -1,4 +1,4 @@
--- Velocity Performance / Gym Tracker
+-- Spotter
 -- Run this entire file in the Supabase SQL editor for a new project.
 
 create extension if not exists pgcrypto;

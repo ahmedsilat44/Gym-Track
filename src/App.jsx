@@ -50,8 +50,8 @@ const resolveRoute = (pathname) => {
 function LoadingScreen() {
   return (
     <div className="splash-screen">
-      <div className="brand-mark">V</div>
-      <p className="eyebrow">Velocity Performance</p>
+      <div className="brand-mark">S</div>
+      <p className="eyebrow">Spotter</p>
     </div>
   )
 }

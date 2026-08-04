@@ -4,8 +4,10 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 
 const DataContext = createContext(null)
-const DEMO_KEY = 'velocity-demo-data-v3'
-const ACTIVE_KEY = 'velocity-active-workout-v1'
+const DEMO_KEY = 'spotter-demo-data-v1'
+const ACTIVE_KEY = 'spotter-active-workout-v1'
+const LEGACY_DEMO_KEY = 'velocity-demo-data-v3'
+const LEGACY_ACTIVE_KEY = 'velocity-active-workout-v1'
 
 const readJson = (key, fallback) => {
   try {
@@ -14,6 +16,22 @@ const readJson = (key, fallback) => {
   } catch {
     return fallback
   }
+}
+
+const readMigratedJson = (key, legacyKeys, fallback) => {
+  const current = readJson(key, null)
+  if (current !== null) return current
+  for (const legacyKey of legacyKeys) {
+    const legacy = readJson(legacyKey, null)
+    if (legacy !== null) {
+      try {
+        localStorage.setItem(key, JSON.stringify(legacy))
+        localStorage.removeItem(legacyKey)
+      } catch { /* Storage may be unavailable in restricted browser modes. */ }
+      return legacy
+    }
+  }
+  return fallback
 }
 
 const calculateRecords = (sets) => {
@@ -46,8 +64,9 @@ const emptyData = {
 export function DataProvider({ children }) {
   const { user, isDemo } = useAuth()
   const activeStorageKey = `${ACTIVE_KEY}:${user.id}`
+  const legacyActiveStorageKey = `${LEGACY_ACTIVE_KEY}:${user.id}`
   const [data, setData] = useState(emptyData)
-  const [activeWorkout, setActiveWorkout] = useState(() => readJson(activeStorageKey, null))
+  const [activeWorkout, setActiveWorkout] = useState(() => readMigratedJson(activeStorageKey, [legacyActiveStorageKey], null))
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -63,7 +82,7 @@ export function DataProvider({ children }) {
     setError('')
     try {
       if (isDemo) {
-        const saved = readJson(DEMO_KEY, null)
+        const saved = readMigratedJson(DEMO_KEY, [LEGACY_DEMO_KEY], null)
         const next = saved ?? createDemoData()
         if (!saved) localStorage.setItem(DEMO_KEY, JSON.stringify(next))
         setData(next)
@@ -109,13 +128,13 @@ export function DataProvider({ children }) {
 
   useEffect(() => {
     if (loading) return
-    const legacyActive = readJson(ACTIVE_KEY, null)
+    const legacyActive = readJson(LEGACY_ACTIVE_KEY, null)
     const legacySession = legacyActive && data.sessions.find((item) => item.id === legacyActive.sessionId && !item.ended_at)
     if (!activeWorkout && legacySession) {
       setActiveWorkout(legacyActive)
       localStorage.setItem(activeStorageKey, JSON.stringify(legacyActive))
     }
-    localStorage.removeItem(ACTIVE_KEY)
+    localStorage.removeItem(LEGACY_ACTIVE_KEY)
   }, [activeStorageKey, activeWorkout, data.sessions, loading])
 
   useEffect(() => {

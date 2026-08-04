@@ -34,7 +34,7 @@ export default function Login() {
     <main className="login-page">
       <section className="login-hero">
         <div className="brand-mark"><Activity /></div>
-        <p className="eyebrow">Velocity Performance</p>
+        <p className="eyebrow">Spotter</p>
         <h1>Every rep.<br /><span>Measured.</span></h1>
         <p>Train with intent, capture every set, and turn consistency into measurable progress.</p>
         <div className="hero-grid" aria-hidden="true"><i /><i /><i /><i /><i /></div>

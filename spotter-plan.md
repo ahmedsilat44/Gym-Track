@@ -1,4 +1,4 @@
-# Gym Tracker — Build Plan
+# Spotter — Build Plan
 
 ## 1. Concept Summary
 
@@ -158,7 +158,7 @@ After each set insert, compare against `personal_records` using estimated 1RM (E
 ## 6. Project Structure
 
 ```
-gym-tracker/
+spotter/
 ├── index.html
 ├── src/
 │   ├── main.jsx
@@ -193,7 +193,7 @@ gym-tracker/
 
 ## 7. Key Implementation Details
 
-- **`vite.config.js` base path:** GitHub Pages serves from `/repo-name/`, so `base: '/gym-tracker/'` must be set or assets will 404.
+- **`vite.config.js` base path:** GitHub Pages serves from `/repo-name/`; the build derives this path from `GITHUB_REPOSITORY` so assets do not 404.
 - **Supabase keys in a public repo:** the anon key is safe to expose (RLS protects data) — RLS policies must be verified as airtight before publishing.
 - **Mobile ergonomics:** min 44px tap targets (Apple HIG), sticky "Log Set" button, `viewport-fit=cover` + safe-area insets for notch/home-indicator, prevent accidental pull-to-refresh mid-set.
 - **1RM PR logic:** track both heaviest weight ever *and* best estimated 1RM, since a heavy single vs. a strong rep-set are different achievements.

@@ -101,7 +101,7 @@ export default function Settings() {
     const url = URL.createObjectURL(new Blob(['\ufeff', csv], { type: 'text/csv;charset=utf-8' }))
     const link = document.createElement('a')
     link.href = url
-    link.download = `velocity-workouts-${new Date().toISOString().slice(0, 10)}.csv`
+    link.download = `spotter-workouts-${new Date().toISOString().slice(0, 10)}.csv`
     link.click()
     URL.revokeObjectURL(url)
   }

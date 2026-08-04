@@ -1,4 +1,4 @@
-# Velocity Performance Gym Tracker
+# Spotter
 
 A mobile-first, self-hostable workout tracker for individuals and small private training groups. Build fixed weekly routines, log sets in real time, track personal records, connect with friends, share progress summaries, and copy routines without running an application server.
 
@@ -79,8 +79,8 @@ Supabase documents publishable keys as safe for web pages and requires RLS to pr
 ## Quick start: local demo
 
 ```powershell
-git clone https://github.com/YOUR-ACCOUNT/Gym-Track.git
-Set-Location Gym-Track
+git clone https://github.com/YOUR-ACCOUNT/YOUR-REPOSITORY.git
+Set-Location YOUR-REPOSITORY
 npm install
 npm run dev
 ```
@@ -137,7 +137,7 @@ Use your real Pages URL and keep its trailing slash. Exact production redirect U
 
 Supabase Auth keeps the signed-in SPA session in persistent browser storage and refreshes its access token automatically. Closing and reopening the browser therefore keeps the user signed in until the session is revoked, expires under the project's Auth policy, or the user signs out.
 
-The app also writes a `velocity_session_active=1` cookie for one year while a user is signed in. It is `SameSite=Strict`, marked `Secure` on HTTPS, scoped to the application's base path, and contains no token, email, user ID, or other personal data. Signing out removes it. It is only a non-sensitive session hint; Supabase's access and refresh tokens remain in persistent browser storage.
+The app also writes a `spotter_session_active=1` cookie for one year while a user is signed in. It is `SameSite=Strict`, marked `Secure` on HTTPS, scoped to the application's base path, and contains no token, email, user ID, or other personal data. Signing out removes it. It is only a non-sensitive session hint; Supabase's access and refresh tokens remain in persistent browser storage.
 
 This split is intentional for a static GitHub Pages SPA. A true `HttpOnly` auth cookie must be created and refreshed by a trusted server, which this project does not have. Moving the refresh token into a JavaScript-readable cookie would expose it to script while also sending it with page requests. See Supabase's [session documentation](https://supabase.com/docs/guides/auth/sessions) and [JavaScript client initialization options](https://supabase.com/docs/reference/javascript/initializing).
 
@@ -368,7 +368,7 @@ Bootstrap the owner with the SQL in step 4. Check that the email matches exactly
 
 ### Login is not remembered
 
-Confirm the browser allows site storage, the app is served from the same origin and repository path each time, and the user did not choose a private browsing mode that clears storage. The `velocity_session_active` cookie is only a hint; inspect the browser's local storage for the Supabase Auth entry and check the console for storage or token-refresh errors.
+Confirm the browser allows site storage, the app is served from the same origin and repository path each time, and the user did not choose a private browsing mode that clears storage. The `spotter_session_active` cookie is only a hint; inspect the browser's local storage for the Supabase Auth entry and check the console for storage or token-refresh errors.
 
 ### A database request returns an RLS error
 

@@ -5,7 +5,7 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import react from 'eslint-plugin-react'
 
 export default [
-  { ignores: ['dist', 'discover_exercises', 'fitness_dashboard', 'progress_statistics', 'velocity_performance', 'workout_tracker'] },
+  { ignores: ['dist', 'discover_exercises', 'fitness_dashboard', 'progress_statistics', 'spotter', 'workout_tracker'] },
   {
     files: ['**/*.{js,jsx}'],
     languageOptions: {

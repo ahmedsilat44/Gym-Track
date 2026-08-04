@@ -2,9 +2,10 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
 
 const AuthContext = createContext(null)
-const demoUser = { id: 'demo-user', email: 'demo@velocity.local', user_metadata: { display_name: 'Athlete' } }
+const demoUser = { id: 'demo-user', email: 'demo@spotter.local', user_metadata: { display_name: 'Athlete' } }
 const demoMembership = { access_status: 'approved', is_admin: false }
-const SESSION_HINT_COOKIE = 'velocity_session_active'
+const SESSION_HINT_COOKIE = 'spotter_session_active'
+const LEGACY_SESSION_HINT_COOKIE = 'velocity_session_active'
 
 const updateSessionHintCookie = (isSignedIn) => {
   if (typeof document === 'undefined') return
@@ -12,6 +13,7 @@ const updateSessionHintCookie = (isSignedIn) => {
   const maxAge = isSignedIn ? 60 * 60 * 24 * 365 : 0
   const secure = window.location.protocol === 'https:' ? '; Secure' : ''
   document.cookie = `${SESSION_HINT_COOKIE}=${isSignedIn ? '1' : ''}; Path=${path}; Max-Age=${maxAge}; SameSite=Strict${secure}`
+  document.cookie = `${LEGACY_SESSION_HINT_COOKIE}=; Path=${path}; Max-Age=0; SameSite=Strict${secure}`
 }
 
 export function AuthProvider({ children }) {
