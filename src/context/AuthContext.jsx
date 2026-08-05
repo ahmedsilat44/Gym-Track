@@ -23,6 +23,7 @@ export function AuthProvider({ children }) {
   const [membershipUserId, setMembershipUserId] = useState(isSupabaseConfigured ? null : demoUser.id)
   const [membershipLoading, setMembershipLoading] = useState(false)
   const [membershipError, setMembershipError] = useState('')
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
   const userId = session?.user?.id
 
   const refreshMembership = useCallback(async () => {
@@ -74,12 +75,14 @@ export function AuthProvider({ children }) {
         if (active) setSessionLoading(false)
       })
 
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return
+      if (event === 'PASSWORD_RECOVERY') setIsPasswordRecovery(true)
       if (!nextSession) {
         setMembership(null)
         setMembershipUserId(null)
         setMembershipError('')
+        setIsPasswordRecovery(false)
       }
       setSession(nextSession)
       updateSessionHintCookie(Boolean(nextSession))
@@ -108,6 +111,7 @@ export function AuthProvider({ children }) {
     accessStatus: currentMembership?.access_status || null,
     isApproved: currentMembership?.access_status === 'approved',
     isAdmin: currentMembership?.access_status === 'approved' && Boolean(currentMembership?.is_admin),
+    isPasswordRecovery,
     refreshMembership,
     async listMembers() {
       if (!supabase) return []
@@ -139,6 +143,20 @@ export function AuthProvider({ children }) {
       })
       if (error) throw error
     },
+    async requestPasswordReset(email) {
+      if (!supabase) throw new Error('Password reset requires Supabase cloud mode.')
+      const redirectTo = `${window.location.origin}${import.meta.env.BASE_URL || '/'}`
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+      if (error) throw error
+    },
+    async updatePassword(password) {
+      if (!supabase) throw new Error('Password reset requires Supabase cloud mode.')
+      const { error } = await supabase.auth.updateUser({ password })
+      if (error) throw error
+    },
+    clearPasswordRecovery() {
+      setIsPasswordRecovery(false)
+    },
     async signOut() {
       if (supabase) {
         const { error } = await supabase.auth.signOut()
@@ -147,9 +165,10 @@ export function AuthProvider({ children }) {
       setMembership(null)
       setMembershipUserId(null)
       setMembershipError('')
+      setIsPasswordRecovery(false)
       updateSessionHintCookie(false)
     },
-  }), [currentMembership, membershipError, membershipLoading, membershipUserId, refreshMembership, session, sessionLoading, userId])
+  }), [currentMembership, isPasswordRecovery, membershipError, membershipLoading, membershipUserId, refreshMembership, session, sessionLoading, userId])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

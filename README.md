@@ -141,6 +141,8 @@ The app also writes a `spotter_session_active=1` cookie for one year while a use
 
 This split is intentional for a static GitHub Pages SPA. A true `HttpOnly` auth cookie must be created and refreshed by a trusted server, which this project does not have. Moving the refresh token into a JavaScript-readable cookie would expose it to script while also sending it with page requests. See Supabase's [session documentation](https://supabase.com/docs/guides/auth/sessions) and [JavaScript client initialization options](https://supabase.com/docs/reference/javascript/initializing).
 
+The login page includes **Forgot password?**. Reset emails return to the current app origin and repository path, then open the new-password form. Add the deployed Pages URL to Supabase **Authentication → URL Configuration → Redirect URLs**.
+
 ### 4. Open signup, bootstrap the owner, and approve members
 
 Registration stays public, but every new profile starts as `pending`. Restrictive RLS policies block pending or rejected accounts from every application table. They can only read their own approval state through a narrow RPC.

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
-  const { signIn, signUp } = useAuth()
+  const { signIn, signUp, requestPasswordReset } = useAuth()
   const allowSignup = import.meta.env.VITE_ALLOW_SIGNUP !== 'false'
   const [mode, setMode] = useState('signin')
   const [form, setForm] = useState({ name: '', email: '', password: '' })
@@ -17,7 +17,10 @@ export default function Login() {
     setError('')
     setMessage('')
     try {
-      if (mode === 'signin') await signIn(form.email, form.password)
+      if (mode === 'reset') {
+        await requestPasswordReset(form.email)
+        setMessage('If account exists, reset email is on its way. Check spam too.')
+      } else if (mode === 'signin') await signIn(form.email, form.password)
       else if (allowSignup) {
         await signUp(form.email, form.password, form.name)
         setMessage('Request received. Confirm your email, then sign in to check admin approval.')
@@ -40,16 +43,18 @@ export default function Login() {
         <div className="hero-grid" aria-hidden="true"><i /><i /><i /><i /><i /></div>
       </section>
       <section className="login-card glass-card">
-        <div><p className="eyebrow">Athlete access</p><h2>{mode === 'signin' ? 'Welcome back' : 'Join the waitlist'}</h2></div>
+        <div><p className="eyebrow">Athlete access</p><h2>{mode === 'signin' ? 'Welcome back' : mode === 'reset' ? 'Reset password' : 'Join the waitlist'}</h2></div>
         <form onSubmit={submit}>
           {mode === 'signup' && <label>Display name<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required placeholder="How should we call you?" /></label>}
           <label>Email<div className="input-with-icon"><Mail size={18} /><input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required placeholder="you@example.com" /></div></label>
-          <label>Password<div className="input-with-icon"><LockKeyhole size={18} /><input type="password" minLength="8" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} required placeholder="At least 8 characters" /></div></label>
+          {mode !== 'reset' && <label>Password<div className="input-with-icon"><LockKeyhole size={18} /><input type="password" minLength="8" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} required placeholder="At least 8 characters" /></div></label>}
           {error && <p className="form-error">{error}</p>}
           {message && <p className="form-success">{message}</p>}
-          <button className="primary-button" disabled={busy}>{busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Request access'} <ArrowRight size={19} /></button>
+          <button className="primary-button" disabled={busy}>{busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : mode === 'reset' ? 'Send reset email' : 'Request access'} <ArrowRight size={19} /></button>
         </form>
-        {allowSignup && <button className="text-button" onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}>{mode === 'signin' ? 'New here? Join the waitlist' : 'Already have an account? Sign in'}</button>}
+        {mode === 'signin' && <button className="text-button login-reset-link" onClick={() => { setMode('reset'); setError(''); setMessage('') }}>Forgot password?</button>}
+        {mode === 'reset' && <button className="text-button" onClick={() => { setMode('signin'); setError(''); setMessage('') }}>Back to sign in</button>}
+        {allowSignup && mode !== 'reset' && <button className="text-button" onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}>{mode === 'signin' ? 'New here? Join the waitlist' : 'Already have an account? Sign in'}</button>}
         {!allowSignup && <p className="form-note">This is a private training network. Ask its owner for an invitation.</p>}
       </section>
     </main>

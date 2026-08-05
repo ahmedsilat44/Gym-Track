@@ -18,6 +18,7 @@ const Social = lazy(() => import('./pages/Social'))
 const Profile = lazy(() => import('./pages/Profile'))
 const Admin = lazy(() => import('./pages/Admin'))
 const PendingAccess = lazy(() => import('./pages/PendingAccess'))
+const PasswordReset = lazy(() => import('./pages/PasswordReset'))
 
 const staticRoutes = {
   '/': Dashboard,
@@ -57,10 +58,11 @@ function LoadingScreen() {
 }
 
 function ProtectedApp() {
-  const { user, loading, isApproved, isAdmin } = useAuth()
+  const { user, loading, isApproved, isAdmin, isPasswordRecovery } = useAuth()
   const { pathname } = useLocation()
   if (loading) return <LoadingScreen />
   if (!user) return <Suspense fallback={<LoadingScreen />}><Login /></Suspense>
+  if (isPasswordRecovery) return <Suspense fallback={<LoadingScreen />}><PasswordReset /></Suspense>
   if (!isApproved) return <Suspense fallback={<LoadingScreen />}><PendingAccess /></Suspense>
   if (pathname === '/admin' && !isAdmin) return <Navigate to="/" replace />
   const route = resolveRoute(pathname)
