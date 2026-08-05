@@ -131,7 +131,7 @@ In **Authentication → URL Configuration** set:
 - **Site URL:** `https://YOUR-GITHUB-USER.github.io/YOUR-REPOSITORY/`
 - **Additional redirect URL:** `http://localhost:5173/**`
 
-Use your real Pages URL and keep its trailing slash. Exact production redirect URLs are safer than broad wildcards. Supabase explains these settings in its [redirect URL guide](https://supabase.com/docs/guides/auth/redirect-urls).
+Use your real Pages URL and keep its trailing slash. For this deployment, use `https://ahmedsilat44.github.io/Gym-Track/`. Keep `http://localhost:5173/**` only for local development. The signup flow supplies its current deployed origin and repository path as `emailRedirectTo`, but Supabase must still allow that URL. Exact production redirect URLs are safer than broad wildcards. Supabase explains these settings in its [redirect URL guide](https://supabase.com/docs/guides/auth/redirect-urls).
 
 #### Persistent login and cookies
 

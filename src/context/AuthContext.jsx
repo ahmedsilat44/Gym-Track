@@ -128,10 +128,14 @@ export function AuthProvider({ children }) {
       if (error) throw error
     },
     async signUp(email, password, displayName) {
+      const emailRedirectTo = `${window.location.origin}${import.meta.env.BASE_URL || '/'}`
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { display_name: displayName } },
+        options: {
+          data: { display_name: displayName },
+          emailRedirectTo,
+        },
       })
       if (error) throw error
     },
