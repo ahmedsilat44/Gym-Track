@@ -20,14 +20,19 @@ const bestSet = (items) => items.reduce((best, item) => {
 }, null)
 const formatTrackedSet = (set, exercise) => {
   if (!set) return '—'
+  if (exercise.is_bodyweight || ['reps', 'seconds'].includes(exercise.unit)) {
+    const addedWeight = Number(set.weight) > 0 ? ` + ${Number(set.weight).toLocaleString()} kg` : ''
+    return `${set.reps} ${exercise.unit === 'seconds' ? 'sec' : 'reps'}${addedWeight}`
+  }
   const weightUnit = ['reps', 'seconds'].includes(exercise.unit) ? 'kg' : exercise.unit
   return `${Number(set.weight).toLocaleString()} ${weightUnit} × ${set.reps} ${exercise.unit === 'seconds' ? 'sec' : 'reps'}`
 }
+const sessionRecordAsSet = (record) => record && ({ weight: record.best_weight, reps: record.best_reps_at_weight, created_at: record.recorded_at, session_id: record.session_id })
 const exerciseTypes = ['all', 'strength', 'cardio', 'mobility', 'conditioning', 'other']
 
 export default function ActiveSession() {
   const navigate = useNavigate()
-  const { activeWorkout, categories, exercises, sets, loading, addActiveExercise, selectActiveExercise, reorderActiveExercises, removeActiveExercise, logSet, deleteSet, endWorkout, shareProgress } = useData()
+  const { activeWorkout, categories, exercises, sets, sessionRecords, loading, addActiveExercise, selectActiveExercise, reorderActiveExercises, removeActiveExercise, logSet, deleteSet, endWorkout, shareProgress } = useData()
   const [exerciseIndex, setExerciseIndex] = useState(0)
   const [weight, setWeight] = useState(20)
   const [reps, setReps] = useState(8)
@@ -55,9 +60,15 @@ export default function ActiveSession() {
   }, 0), [sessionSets])
   const exerciseSets = sessionSets.filter((item) => item.exercise_id === exercise?.id).sort((a, b) => a.set_number - b.set_number)
   const previousExerciseSets = sets.filter((item) => item.exercise_id === exercise?.id && item.session_id !== activeWorkout?.sessionId)
-  const previousPr = bestSet(previousExerciseSets)
+  const previousSessionRecords = sessionRecords.filter((item) => item.exercise_id === exercise?.id && item.session_id !== activeWorkout?.sessionId)
+  const bodyweight = exercise?.is_bodyweight || ['reps', 'seconds'].includes(exercise?.unit)
+  const previousPrRecord = [...previousSessionRecords].sort((a, b) => bodyweight
+    ? Number(b.best_reps_at_weight) - Number(a.best_reps_at_weight)
+    : Number(b.best_est_1rm) - Number(a.best_est_1rm) || Number(b.best_weight) - Number(a.best_weight))[0]
+  const previousPr = sessionRecordAsSet(previousPrRecord) || bestSet(previousExerciseSets)
+  const lastSessionRecord = [...previousSessionRecords].sort((a, b) => new Date(b.recorded_at) - new Date(a.recorded_at))[0]
   const lastSessionId = [...previousExerciseSets].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]?.session_id
-  const lastSessionBest = bestSet(previousExerciseSets.filter((item) => item.session_id === lastSessionId))
+  const lastSessionBest = sessionRecordAsSet(lastSessionRecord) || bestSet(previousExerciseSets.filter((item) => item.session_id === lastSessionId))
   const currentSessionBest = bestSet(exerciseSets)
   const target = exercise ? activeWorkout?.targets?.[exercise.id] : null
   const availableExercises = useMemo(() => fuzzySearch(
@@ -79,10 +90,11 @@ export default function ActiveSession() {
 
   useEffect(() => {
     if (!exercise) return
-    const previous = sets.find((item) => item.exercise_id === exercise.id)
+    const latestRecord = [...sessionRecords].filter((item) => item.exercise_id === exercise.id && item.session_id !== activeWorkout?.sessionId).sort((a, b) => new Date(b.recorded_at) - new Date(a.recorded_at))[0]
+    const previous = sets.find((item) => item.exercise_id === exercise.id) || sessionRecordAsSet(latestRecord)
     setWeight(target?.weight != null ? Number(target.weight) : previous ? Number(previous.weight) : exercise.is_bodyweight ? 0 : 20)
     setReps(target?.repsMin ? Number(target.repsMin) : previous ? Number(previous.reps) : exercise.unit === 'seconds' ? 30 : 8)
-  }, [exercise, sets, target?.repsMin, target?.weight])
+  }, [activeWorkout?.sessionId, exercise, sessionRecords, sets, target?.repsMin, target?.weight])
 
   useEffect(() => {
     if (!loading && !activeWorkout) navigate('/start', { replace: true })

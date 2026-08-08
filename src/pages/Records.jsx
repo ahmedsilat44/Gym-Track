@@ -26,8 +26,9 @@ export default function Records() {
       <div className="history-list">{filteredRecords.map((record) => {
         const exercise = exercises.find((item) => item.id === record.exercise_id)
         const category = categories.find((item) => item.id === exercise?.category_id)
-        const weightUnit = ['reps', 'seconds'].includes(exercise?.unit) ? 'kg' : exercise?.unit || 'kg'
-        return <button className="glass-card history-row" key={record.exercise_id} onClick={() => navigate(`/exercise/${record.exercise_id}`)}><span className="record-rank top"><Trophy /></span><span><strong>{exercise?.name || 'Archived exercise'}</strong><small>{category?.name || 'Unassigned'} · {new Date(record.achieved_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })} · {record.best_reps_at_weight} reps</small></span><span className="metric">{Number(record.best_weight).toLocaleString()}<small>{weightUnit}</small></span><ArrowRight /></button>
+        const bodyweight = exercise?.is_bodyweight || ['reps', 'seconds'].includes(exercise?.unit)
+        const unit = bodyweight ? (exercise?.unit === 'seconds' ? 'sec' : 'reps') : exercise?.unit || 'kg'
+        return <button className="glass-card history-row" key={record.exercise_id} onClick={() => navigate(`/exercise/${record.exercise_id}`)}><span className="record-rank top"><Trophy /></span><span><strong>{exercise?.name || 'Archived exercise'}</strong><small>{category?.name || 'Unassigned'} · {new Date(record.achieved_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })} · {record.best_reps_at_weight} {exercise?.unit === 'seconds' ? 'sec' : 'reps'}</small></span><span className="metric">{Number(bodyweight ? record.best_reps_at_weight : record.best_weight).toLocaleString()}<small>{unit}</small></span><ArrowRight /></button>
       })}{!filteredRecords.length && <div className="empty-state glass-card"><Trophy /><h3>{query.trim() ? 'No matching records' : 'No records yet'}</h3><p>{query.trim() ? 'Try another exercise or category.' : 'Complete a set to claim your first PR.'}</p></div>}</div>
     </main>
   )

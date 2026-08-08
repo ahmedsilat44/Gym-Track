@@ -33,6 +33,27 @@ begin
     raise exception 'Authenticated clients have unnecessary update grants on immutable workout rows.';
   end if;
 
+  if to_regclass('public.app_usage_daily') is null then
+    raise exception 'Admin usage analytics migration has not been applied.';
+  end if;
+
+  if has_table_privilege('authenticated', 'public.app_usage_daily', 'SELECT')
+    or has_table_privilege('authenticated', 'public.app_usage_daily', 'INSERT')
+    or has_table_privilege('authenticated', 'public.app_usage_daily', 'UPDATE')
+    or has_table_privilege('authenticated', 'public.app_usage_daily', 'DELETE') then
+    raise exception 'Authenticated clients can access raw usage counters directly.';
+  end if;
+
+  if to_regclass('public.exercise_session_records') is null then
+    raise exception 'Three-month set-retention migration has not been applied.';
+  end if;
+
+  if has_table_privilege('authenticated', 'public.exercise_session_records', 'INSERT')
+    or has_table_privilege('authenticated', 'public.exercise_session_records', 'UPDATE')
+    or has_table_privilege('authenticated', 'public.exercise_session_records', 'DELETE') then
+    raise exception 'Authenticated clients can directly change permanent session records.';
+  end if;
+
   if not exists (
     select 1
     from information_schema.columns
@@ -77,8 +98,12 @@ begin
     or to_regprocedure('public.is_app_admin()') is null
     or to_regprocedure('public.get_my_membership()') is null
     or to_regprocedure('public.admin_list_members()') is null
-    or to_regprocedure('public.admin_set_member_access(uuid,text)') is null then
-    raise exception 'One or more approval RPCs are missing.';
+    or to_regprocedure('public.admin_set_member_access(uuid,text)') is null
+    or to_regprocedure('public.record_app_usage(integer,boolean)') is null
+    or to_regprocedure('public.admin_member_analytics()') is null
+    or to_regprocedure('public.refresh_exercise_records(uuid,uuid)') is null
+    or to_regprocedure('public.prune_expired_sets()') is null then
+    raise exception 'One or more approval, analytics, or retention functions are missing.';
   end if;
 
   if exists (
@@ -89,11 +114,21 @@ begin
       to_regprocedure('public.is_app_admin()'),
       to_regprocedure('public.get_my_membership()'),
       to_regprocedure('public.admin_list_members()'),
-      to_regprocedure('public.admin_set_member_access(uuid,text)')
+      to_regprocedure('public.admin_set_member_access(uuid,text)'),
+      to_regprocedure('public.record_app_usage(integer,boolean)'),
+      to_regprocedure('public.admin_member_analytics()'),
+      to_regprocedure('public.refresh_exercise_records(uuid,uuid)'),
+      to_regprocedure('public.prune_expired_sets()')
     )
       and not prosecdef
   ) then
-    raise exception 'Approval RPCs must remain security-definer functions.';
+    raise exception 'Approval, analytics, and retention functions must remain security-definer functions.';
+  end if;
+
+  if not exists (
+    select 1 from cron.job where jobname = 'spotter-prune-expired-sets'
+  ) then
+    raise exception 'The three-month raw-set retention job is missing.';
   end if;
 
   if exists (
@@ -164,6 +199,8 @@ where routine_schema = 'public'
     'validate_friendship_acceptance',
     'normalize_exercise_name',
     'sync_exercise_to_catalog',
-    'protect_profile_membership_fields'
+    'protect_profile_membership_fields',
+    'refresh_exercise_records',
+    'prune_expired_sets'
   )
 order by routine_name, grantee;

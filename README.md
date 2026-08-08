@@ -109,7 +109,10 @@ Open **SQL Editor** in the new Supabase project and run these files in order:
 6. [`supabase/migrations/20260714111000_index_exercise_catalog_creator.sql`](supabase/migrations/20260714111000_index_exercise_catalog_creator.sql) — covers the catalog creator foreign key.
 7. [`supabase/migrations/20260715100000_harden_model_relationships.sql`](supabase/migrations/20260715100000_harden_model_relationships.sql) — enforces parent/child ownership, immutable derived records, valid timestamps, and bounded post metadata.
 8. [`supabase/migrations/20260802100000_admin_approval_waitlist.sql`](supabase/migrations/20260802100000_admin_approval_waitlist.sql) — adds membership states, administrator RPCs, and a restrictive approval policy on every app table.
-9. [`supabase/verify-security.sql`](supabase/verify-security.sql) — read-only security, ownership-integrity, grant, approval, and policy checks.
+9. [`supabase/migrations/20260809120000_admin_usage_analytics.sql`](supabase/migrations/20260809120000_admin_usage_analytics.sql) — adds privacy-safe daily usage counters and administrator-only scaling analytics.
+10. [`supabase/migrations/20260809130000_three_month_set_retention.sql`](supabase/migrations/20260809130000_three_month_set_retention.sql) — stores permanent per-session exercise bests and schedules raw-set deletion after three months.
+11. [`supabase/migrations/20260809140000_index_analytics_foreign_keys.sql`](supabase/migrations/20260809140000_index_analytics_foreign_keys.sql) — covers analytics and approval foreign keys for scalable deletes and joins.
+12. [`supabase/verify-security.sql`](supabase/verify-security.sql) — read-only security, ownership-integrity, grant, approval, analytics, retention, and policy checks.
 
 The verification script should complete without raising an exception. Its final query should return no execute grants for the trigger-only functions.
 
@@ -166,6 +169,22 @@ where id = (
 ```
 
 Confirm that exactly one row was updated. Sign out and back in, then open **Settings → Admin console**. Pending applicants appear there with Approve and Reject actions. Approved non-admin members can later be returned to the waitlist or rejected. Administrator accounts cannot be revoked through the app, preventing accidental loss of the final admin.
+
+#### Administrator usage analytics
+
+The admin console shows completed workouts, routines created, active days, last activity, app opens, and Supabase database API requests for each member. Network totals use a rolling 30-day window for capacity planning.
+
+“DB requests” means calls made through Supabase's database REST API. It is a stable client-side capacity signal, but it is not the exact number of internal PostgreSQL statements: one API call can execute more than one statement inside a function or trigger. Counters flush every 30 seconds and when the app becomes hidden, so very short sessions can be undercounted.
+
+Only daily totals are stored. The analytics system does not retain SQL text, request paths, payloads, IP addresses, or device information. Members cannot read the analytics table directly; approved users may only increment their own daily aggregate through `record_app_usage`, while `admin_member_analytics` requires an approved administrator.
+
+#### Workout-history retention
+
+Detailed working sets remain available for a rolling three-month window. Every logged exercise also produces one compact `exercise_session_records` row containing that session's best weight, reps, estimated 1RM, date, and historical PR status. These session records remain permanently, powering exercise progress graphs and preserving all-time PRs after raw sets expire.
+
+The retention migration backfills session records before deleting anything. It enables Supabase Cron (`pg_cron`) and schedules `prune_expired_sets()` daily at 03:15 UTC. The job stores no external credentials and runs inside Postgres. Job status can be reviewed under **Integrations → Cron → Jobs** in the Supabase Dashboard; see the [Supabase Cron documentation](https://supabase.com/docs/guides/cron).
+
+Deleting a recent set manually recalculates its session record and all-time PR. Automated retention deletion intentionally preserves the permanent session record. Deleting an entire workout session removes its permanent session records through foreign-key cascading.
 
 For an existing installation, the migration approves existing profiles and promotes the oldest account only when no administrator exists. New signups after migration remain pending.
 

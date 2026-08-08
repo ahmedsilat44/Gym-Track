@@ -119,6 +119,12 @@ export function AuthProvider({ children }) {
       if (error) throw error
       return data || []
     },
+    async listMemberAnalytics() {
+      if (!supabase) return []
+      const { data, error } = await supabase.rpc('admin_member_analytics')
+      if (error) throw error
+      return data || []
+    },
     async setMemberAccess(userId, status) {
       if (!supabase) return
       const { error } = await supabase.rpc('admin_set_member_access', {

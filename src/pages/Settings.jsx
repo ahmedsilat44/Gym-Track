@@ -13,7 +13,7 @@ export default function Settings() {
   const { user, isDemo, isAdmin, signOut } = useAuth()
   const navigate = useNavigate()
   const {
-    categories, exercises, exerciseCatalog, sessions, sets, preferences, profiles,
+    categories, exercises, exerciseCatalog, sessions, sets, sessionRecords, preferences, profiles,
     addCategory, updateCategory, moveCategory, archiveCategory, saveExercise,
     assignExerciseCategory, archiveExercise, saveProfile, resetDemo,
   } = useData()
@@ -85,19 +85,25 @@ export default function Settings() {
     moveExercise(exerciseId, categoryId)
   }
   const exportCsv = () => {
-    const header = ['session_started_at', 'session_ended_at', 'category', 'exercise', 'set_number', 'weight', 'unit', 'reps', 'is_pr', 'notes']
-    const rows = sets.map((set) => {
+    const header = ['row_type', 'session_started_at', 'session_ended_at', 'category', 'exercise', 'set_number', 'weight', 'unit', 'reps', 'estimated_1rm', 'is_pr', 'notes']
+    const setRows = sets.map((set) => {
       const session = sessions.find((item) => item.id === set.session_id)
       const exercise = exercises.find((item) => item.id === set.exercise_id)
       const category = categories.find((item) => item.id === session?.category_id)
-      return [session?.started_at, session?.ended_at, category?.name || 'Mixed / Unassigned', exercise?.name, set.set_number, set.weight, exercise?.unit, set.reps, set.is_pr, session?.notes]
+      return ['raw_set', session?.started_at, session?.ended_at, category?.name || 'Mixed / Unassigned', exercise?.name, set.set_number, set.weight, exercise?.unit, set.reps, '', set.is_pr, session?.notes]
+    })
+    const recordRows = sessionRecords.map((record) => {
+      const session = sessions.find((item) => item.id === record.session_id)
+      const exercise = exercises.find((item) => item.id === record.exercise_id)
+      const category = categories.find((item) => item.id === session?.category_id)
+      return ['permanent_session_best', session?.started_at || record.recorded_at, session?.ended_at, category?.name || 'Mixed / Unassigned', exercise?.name, '', record.best_weight, exercise?.unit, record.best_reps_at_weight, record.best_est_1rm, record.is_all_time_pr, session?.notes]
     })
     const escapeCsvCell = (value) => {
       const text = String(value ?? '')
       const spreadsheetSafe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text
       return `"${spreadsheetSafe.replaceAll('"', '""')}"`
     }
-    const csv = [header, ...rows].map((row) => row.map(escapeCsvCell).join(',')).join('\n')
+    const csv = [header, ...setRows, ...recordRows].map((row) => row.map(escapeCsvCell).join(',')).join('\n')
     const url = URL.createObjectURL(new Blob(['\ufeff', csv], { type: 'text/csv;charset=utf-8' }))
     const link = document.createElement('a')
     link.href = url

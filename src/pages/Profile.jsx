@@ -1,8 +1,9 @@
-import { ArrowLeft, CalendarDays, Check, Copy, Dumbbell, Edit3, MessageCircle, Share2, UserCheck, UserPlus } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Check, Dumbbell, Edit3, Eye, MessageCircle, Share2, UserCheck, UserPlus } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate, useParams } from '../router'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
+import RoutinePreviewModal from '../components/RoutinePreviewModal'
 
 const timeAgo = (value) => {
   const seconds = Math.max(1, Math.floor((Date.now() - new Date(value).getTime()) / 1000))
@@ -24,6 +25,7 @@ export default function Profile() {
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
+  const [previewRoutine, setPreviewRoutine] = useState(null)
 
   const targetId = profileId || user.id
   const profile = profiles.find((item) => item.id === targetId)
@@ -95,13 +97,14 @@ export default function Profile() {
               const days = routineDays.filter((day) => day.routine_id === routine.id)
               const dayIds = days.map((day) => day.id)
               const exerciseCount = routineExercises.filter((exercise) => dayIds.includes(exercise.routine_day_id)).length
-              return <article className="glass-card published-workout-card routine" key={routine.id}><header><span><CalendarDays /></span><i>{routine.visibility === 'public' ? 'Public routine' : 'Friends routine'}</i></header><h3>{routine.name}</h3><p>{routine.description || 'A repeatable workout plan.'}</p><small>{days.length} training days · {exerciseCount} exercises</small>{!isOwnProfile && <button className="secondary-button compact" disabled={busy} onClick={() => perform(async () => { await copyRoutine(routine.id); navigate('/planner') }, 'Routine copied to your planner.')}><Copy /> Copy routine</button>}</article>
+              return <article className="glass-card published-workout-card routine" key={routine.id}><header><span><CalendarDays /></span><i>{routine.visibility === 'public' ? 'Public routine' : 'Friends routine'}</i></header><h3>{routine.name}</h3><p>{routine.description || 'A repeatable workout plan.'}</p><small>{days.length} training days · {exerciseCount} exercises</small>{!isOwnProfile && <button className="secondary-button compact" disabled={busy} onClick={() => setPreviewRoutine(routine)}><Eye /> View routine</button>}</article>
             })}
             {publishedWorkouts.map((post) => { const meta = post.metadata || {}; return <article className="glass-card published-workout-card" key={post.id}><header><span><Dumbbell /></span><i>{timeAgo(post.created_at)}</i></header><h3>{meta.category_name || 'Completed workout'}</h3><p>{post.caption || (meta.exercise_names || []).join(', ') || 'Workout summary'}</p><small>{meta.exercise_count || 0} exercises · {meta.set_count || 0} sets · {Number(meta.total_volume || 0).toLocaleString()} volume{meta.pr_count ? ` · ${meta.pr_count} PR` : ''}</small></article> })}
             {!publishedWorkouts.length && !publishedRoutines.length && <div className="empty-state glass-card"><Dumbbell /><h3>No published workouts</h3><p>{isOwnProfile ? 'Share a workout summary or routine to feature it here.' : 'This athlete has not published a workout you can see.'}</p></div>}
           </div>
         </section>
       </div>
+      <RoutinePreviewModal routine={previewRoutine} routineDays={routineDays} routineExercises={routineExercises} authorName={profile.display_name} busy={busy} onClose={() => setPreviewRoutine(null)} onCopy={() => perform(async () => { await copyRoutine(previewRoutine.id); setPreviewRoutine(null); navigate('/planner') }, 'Routine copied to your planner.')} />
     </main>
   )
 }

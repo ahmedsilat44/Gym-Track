@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { createDemoData } from '../data/seed'
-import { supabase } from '../lib/supabase'
+import { flushUsageMetrics, supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 
 const DataContext = createContext(null)
@@ -34,7 +34,58 @@ const readMigratedJson = (key, legacyKeys, fallback) => {
   return fallback
 }
 
-const calculateRecords = (sets) => {
+const buildSessionRecords = (sets, sessions, exercises) => {
+  const grouped = new Map()
+  sets.forEach((set) => {
+    const key = `${set.session_id}:${set.exercise_id}`
+    grouped.set(key, [...(grouped.get(key) ?? []), set])
+  })
+  const records = [...grouped.values()].map((sessionSets) => {
+    const first = sessionSets[0]
+    const exercise = exercises.find((item) => item.id === first.exercise_id)
+    const bodyweight = exercise?.is_bodyweight || ['reps', 'seconds'].includes(exercise?.unit)
+    const bestPerformance = [...sessionSets].sort((a, b) => bodyweight
+      ? Number(b.reps) - Number(a.reps)
+      : Number(b.weight) * (1 + Number(b.reps) / 30) - Number(a.weight) * (1 + Number(a.reps) / 30))[0]
+    const heaviest = [...sessionSets].sort((a, b) => Number(b.weight) - Number(a.weight) || Number(b.reps) - Number(a.reps))[0]
+    return {
+      id: `record-${first.session_id}-${first.exercise_id}`,
+      session_id: first.session_id,
+      exercise_id: first.exercise_id,
+      best_weight: Number(heaviest.weight),
+      best_reps_at_weight: Number(heaviest.reps),
+      best_est_1rm: Number(bestPerformance.weight) * (1 + Number(bestPerformance.reps) / 30),
+      recorded_at: sessions.find((item) => item.id === first.session_id)?.started_at || bestPerformance.created_at,
+      is_all_time_pr: false,
+    }
+  }).sort((a, b) => new Date(a.recorded_at) - new Date(b.recorded_at))
+  const bestByExercise = new Map()
+  records.forEach((record) => {
+    const exercise = exercises.find((item) => item.id === record.exercise_id)
+    const score = exercise?.is_bodyweight || ['reps', 'seconds'].includes(exercise?.unit) ? record.best_reps_at_weight : Math.max(record.best_weight, record.best_est_1rm)
+    record.is_all_time_pr = score > (bestByExercise.get(record.exercise_id) ?? -1)
+    bestByExercise.set(record.exercise_id, Math.max(score, bestByExercise.get(record.exercise_id) ?? -1))
+  })
+  return records
+}
+
+const calculateRecords = (sets, sessionRecords = []) => {
+  if (sessionRecords.length) {
+    const grouped = new Map()
+    sessionRecords.forEach((record) => grouped.set(record.exercise_id, [...(grouped.get(record.exercise_id) ?? []), record]))
+    return [...grouped.entries()].map(([exerciseId, exerciseRecords]) => {
+      const bestEstimated = [...exerciseRecords].sort((a, b) => Number(b.best_est_1rm) - Number(a.best_est_1rm) || Number(b.best_reps_at_weight) - Number(a.best_reps_at_weight))[0]
+      const heaviest = [...exerciseRecords].sort((a, b) => Number(b.best_weight) - Number(a.best_weight) || Number(b.best_reps_at_weight) - Number(a.best_reps_at_weight))[0]
+      return {
+        exercise_id: exerciseId,
+        best_weight: Number(heaviest.best_weight),
+        best_reps_at_weight: Number(heaviest.best_reps_at_weight),
+        best_est_1rm: Number(bestEstimated.best_est_1rm),
+        achieved_at: bestEstimated.recorded_at,
+        set_id: null,
+      }
+    })
+  }
   const grouped = new Map()
   sets.forEach((set) => grouped.set(set.exercise_id, [...(grouped.get(set.exercise_id) ?? []), set]))
   return [...grouped.entries()].map(([exerciseId, exerciseSets]) => {
@@ -56,7 +107,7 @@ const calculateRecords = (sets) => {
 }
 
 const emptyData = {
-  categories: [], exercises: [], exerciseCatalog: [], sessions: [], sets: [], sessionExercises: [],
+  categories: [], exercises: [], exerciseCatalog: [], sessions: [], sets: [], sessionRecords: [], sessionExercises: [],
   preferences: { unit: 'kg', display_name: 'Athlete' }, profiles: [], friendships: [],
   routines: [], routineDays: [], routineExercises: [], feedPosts: [], postLikes: [], postComments: [],
 }
@@ -85,7 +136,7 @@ export function DataProvider({ children }) {
         const saved = readMigratedJson(DEMO_KEY, [LEGACY_DEMO_KEY], null)
         const next = saved ?? createDemoData()
         if (!saved) localStorage.setItem(DEMO_KEY, JSON.stringify(next))
-        setData(next)
+        setData({ ...next, sessionRecords: next.sessionRecords ?? buildSessionRecords(next.sets, next.sessions, next.exercises) })
       } else {
         const results = await Promise.all([
           supabase.from('categories').select('*').order('sort_order'),
@@ -93,6 +144,7 @@ export function DataProvider({ children }) {
           supabase.from('exercise_catalog').select('*').order('name'),
           supabase.from('sessions').select('*').order('started_at', { ascending: false }),
           supabase.from('sets').select('*').order('created_at', { ascending: false }),
+          supabase.from('exercise_session_records').select('*').order('recorded_at', { ascending: false }),
           supabase.from('session_exercises').select('*').order('sort_order'),
           supabase.from('user_preferences').select('*').maybeSingle(),
           supabase.from('profiles').select('*').order('display_name'),
@@ -106,11 +158,11 @@ export function DataProvider({ children }) {
         ])
         const failed = results.find((result) => result.error)
         if (failed) throw failed.error
-        const [categories, exercises, exerciseCatalog, sessions, sets, sessionExercises, preferences, profiles, friendships, routines, routineDays, routineExercises, feedPosts, postLikes, postComments] = results
+        const [categories, exercises, exerciseCatalog, sessions, sets, sessionRecords, sessionExercises, preferences, profiles, friendships, routines, routineDays, routineExercises, feedPosts, postLikes, postComments] = results
         setData({
           categories: categories.data ?? [], exercises: exercises.data ?? [], sessions: sessions.data ?? [],
           exerciseCatalog: exerciseCatalog.data ?? [],
-          sets: sets.data ?? [], sessionExercises: sessionExercises.data ?? [],
+          sets: sets.data ?? [], sessionRecords: sessionRecords.data ?? [], sessionExercises: sessionExercises.data ?? [],
           preferences: preferences.data ?? { unit: 'kg', display_name: user.user_metadata?.display_name || 'Athlete' },
           profiles: profiles.data ?? [], friendships: friendships.data ?? [], routines: routines.data ?? [],
           routineDays: routineDays.data ?? [], routineExercises: routineExercises.data ?? [],
@@ -125,6 +177,21 @@ export function DataProvider({ children }) {
   }, [isDemo, user])
 
   useEffect(() => { refresh() }, [refresh])
+
+  useEffect(() => {
+    if (isDemo || !user) return undefined
+    flushUsageMetrics({ appOpen: true })
+    const interval = window.setInterval(() => flushUsageMetrics(), 30000)
+    const flushWhenHidden = () => {
+      if (document.visibilityState === 'hidden') flushUsageMetrics()
+    }
+    document.addEventListener('visibilitychange', flushWhenHidden)
+    return () => {
+      window.clearInterval(interval)
+      document.removeEventListener('visibilitychange', flushWhenHidden)
+      flushUsageMetrics()
+    }
+  }, [isDemo, user])
 
   useEffect(() => {
     if (loading) return
@@ -395,14 +462,18 @@ export function DataProvider({ children }) {
     const existing = data.sets.filter((item) => item.session_id === activeWorkout.sessionId && item.exercise_id === exerciseId)
     const row = { id: crypto.randomUUID(), session_id: activeWorkout.sessionId, exercise_id: exerciseId, set_number: existing.length + 1, reps: numericReps, weight: numericWeight, created_at: new Date().toISOString() }
     if (isDemo) {
-      const previous = calculateRecords(data.sets).find((item) => item.exercise_id === exerciseId)
+      const previous = calculateRecords(data.sets, data.sessionRecords).find((item) => item.exercise_id === exerciseId)
       const estimated = row.weight * (1 + row.reps / 30)
-      row.is_pr = !previous || estimated > previous.best_est_1rm || row.weight > previous.best_weight
+      const trackedExercise = data.exercises.find((item) => item.id === exerciseId)
+      const bodyweight = trackedExercise?.is_bodyweight || ['reps', 'seconds'].includes(trackedExercise?.unit)
+      row.is_pr = !previous || (bodyweight ? row.reps > previous.best_reps_at_weight : estimated > previous.best_est_1rm || row.weight > previous.best_weight)
       const targetWeight = activeWorkout.targets?.[exerciseId]?.weight
       const plannedWeightUpdated = row.is_pr && activeWorkout.routineDayId && targetWeight != null && row.weight > Number(targetWeight)
+      const nextSets = [row, ...data.sets]
       persistDemo({
         ...data,
-        sets: [row, ...data.sets],
+        sets: nextSets,
+        sessionRecords: buildSessionRecords(nextSets, data.sessions, data.exercises),
         routineExercises: plannedWeightUpdated ? data.routineExercises.map((item) => item.routine_day_id === activeWorkout.routineDayId && item.exercise_id === exerciseId ? { ...item, target_weight: row.weight } : item) : data.routineExercises,
       })
       if (plannedWeightUpdated) {
@@ -436,7 +507,10 @@ export function DataProvider({ children }) {
   }
 
   const deleteSet = async (id) => {
-    if (isDemo) return persistDemo({ ...data, sets: data.sets.filter((item) => item.id !== id) })
+    if (isDemo) {
+      const nextSets = data.sets.filter((item) => item.id !== id)
+      return persistDemo({ ...data, sets: nextSets, sessionRecords: buildSessionRecords(nextSets, data.sessions, data.exercises) })
+    }
     return runRemote(supabase.from('sets').delete().eq('id', id))
   }
 
@@ -446,7 +520,7 @@ export function DataProvider({ children }) {
     const sessionId = activeWorkout.sessionId
     if (isDemo) {
       persistDemo(cancel
-        ? { ...data, sessions: data.sessions.filter((item) => item.id !== sessionId), sets: data.sets.filter((item) => item.session_id !== sessionId), sessionExercises: data.sessionExercises.filter((item) => item.session_id !== sessionId) }
+        ? { ...data, sessions: data.sessions.filter((item) => item.id !== sessionId), sets: data.sets.filter((item) => item.session_id !== sessionId), sessionRecords: data.sessionRecords.filter((item) => item.session_id !== sessionId), sessionExercises: data.sessionExercises.filter((item) => item.session_id !== sessionId) }
         : { ...data, sessions: data.sessions.map((item) => item.id === sessionId ? { ...item, ended_at: new Date().toISOString(), notes } : item) })
     } else if (cancel) {
       const result = await supabase.from('sessions').delete().eq('id', sessionId)
@@ -682,7 +756,7 @@ export function DataProvider({ children }) {
     localStorage.removeItem(activeStorageKey)
   }
 
-  const records = useMemo(() => calculateRecords(data.sets), [data.sets])
+  const records = useMemo(() => calculateRecords(data.sets, data.sessionRecords), [data.sessionRecords, data.sets])
   const value = {
     ...data, records, activeWorkout, loading, error, refresh,
     addCategory, updateCategory, moveCategory, archiveCategory, saveExercise, assignExerciseCategory, addCatalogExercise, archiveExercise,
