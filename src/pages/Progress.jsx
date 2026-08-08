@@ -1,12 +1,19 @@
 import { ArrowRight, CalendarDays, Dumbbell, Flame, TrendingDown, TrendingUp, Trophy } from 'lucide-react'
 import { useMemo } from 'react'
 import { useNavigate } from '../router'
-import MiniChart from '../components/MiniChart'
+import LineChart from '../components/LineChart'
 import { useData } from '../context/DataContext'
 
 const startOfMonth = (value) => {
   const date = new Date(value)
   date.setDate(1)
+  date.setHours(0, 0, 0, 0)
+  return date
+}
+
+const startOfWeek = (value) => {
+  const date = new Date(value)
+  date.setDate(date.getDate() - ((date.getDay() + 6) % 7))
   date.setHours(0, 0, 0, 0)
   return date
 }
@@ -30,12 +37,21 @@ export default function Progress() {
     })
     const windowStart = months[0]
     const recentSets = sets.filter((set) => new Date(set.created_at) >= windowStart)
-    const volume = months.map((month) => recentSets
-      .filter((set) => {
+    const currentWeek = startOfWeek(now)
+    const weeks = Array.from({ length: 12 }, (_, index) => {
+      const date = new Date(currentWeek)
+      date.setDate(date.getDate() - (11 - index) * 7)
+      return date
+    })
+    const chartSets = sets.filter((set) => new Date(set.created_at) >= weeks[0])
+    const weeklyVolume = weeks.map((week) => {
+      const nextWeek = new Date(week)
+      nextWeek.setDate(nextWeek.getDate() + 7)
+      return chartSets.filter((set) => {
         const date = new Date(set.created_at)
-        return date.getFullYear() === month.getFullYear() && date.getMonth() === month.getMonth()
-      })
-      .reduce((sum, set) => sum + setVolume(set), 0))
+        return date >= week && date < nextWeek
+      }).reduce((sum, set) => sum + setVolume(set), 0)
+    })
     const currentMonth = months[2]
     const previousMonth = months[1]
     const dayOfMonth = now.getDate()
@@ -47,7 +63,7 @@ export default function Progress() {
           && date.getDate() <= dayOfMonth
       })
       .reduce((sum, set) => sum + setVolume(set), 0)
-    const currentMonthVolume = volume[2]
+    const currentMonthVolume = recentSets.filter((set) => new Date(set.created_at) >= currentMonth).reduce((sum, set) => sum + setVolume(set), 0)
     const change = previousMonthToDate > 0
       ? Math.round(((currentMonthVolume - previousMonthToDate) / previousMonthToDate) * 100)
       : null
@@ -55,8 +71,8 @@ export default function Progress() {
     const thisMonth = completed.filter((session) => new Date(session.started_at) >= currentMonth)
 
     return {
-      months,
-      volume,
+      weeks,
+      weeklyVolume,
       totalVolume: recentSets.reduce((sum, set) => sum + setVolume(set), 0),
       currentMonthVolume,
       change,
@@ -120,15 +136,15 @@ export default function Progress() {
 
       <section className="section-block progress-chart-section">
         <div className="section-heading progress-section-heading">
-          <div><h2>Volume over time</h2><p>Working-set load across the rolling three-month window.</p></div>
-          <span className="current-volume"><small>This month</small><strong>{formatVolume(stats.currentMonthVolume)} {unit}</strong></span>
+          <div><h2>12-week volume</h2><p>Weekly working-set load across the rolling three-month window.</p></div>
+          <span className="current-volume"><small>This week</small><strong>{formatVolume(stats.weeklyVolume.at(-1))} {unit}</strong></span>
         </div>
         <div className="progress-chart-frame">
-          <MiniChart
-            values={stats.volume}
-            labels={stats.months.map((date) => date.toLocaleDateString(undefined, { month: 'short' }))}
-            format={(value) => `${formatVolume(value)} ${unit}`}
-            ariaLabel={`Monthly training volume: ${stats.months.map((date, index) => `${date.toLocaleDateString(undefined, { month: 'long' })} ${formatVolume(stats.volume[index])} ${unit}`).join(', ')}`}
+          <LineChart
+            values={stats.weeklyVolume}
+            labels={stats.weeks.map((date) => date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}
+            formatTick={formatVolume}
+            ariaLabel={`Weekly training volume: ${stats.weeks.map((date, index) => `week of ${date.toLocaleDateString()} ${formatVolume(stats.weeklyVolume[index])} ${unit}`).join(', ')}`}
           />
         </div>
       </section>

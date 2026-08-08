@@ -144,6 +144,17 @@ svg { flex: 0 0 auto; }
 .bar-column small { font: 500 .62rem 'JetBrains Mono'; }
 .bar-column.active small { color: var(--primary); }
 .bar-tip { position: absolute; z-index: 2; top: -8px; min-width: 34px; padding: 4px 6px; border-radius: 7px; background: var(--primary); color: var(--on-primary); text-align: center; font: 600 .6rem 'JetBrains Mono'; }
+.line-chart { width: 100%; height: 100%; min-height: 210px; }
+.line-chart svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.line-chart-grid { stroke: rgba(186,202,197,.1); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.line-chart-y-label, .line-chart-x-label { fill: var(--muted); font: 500 10px 'JetBrains Mono'; }
+.line-chart-y-label { text-anchor: end; }
+.line-chart-x-label.latest { fill: var(--primary); }
+.line-chart-area { fill: rgba(87,241,219,.055); }
+.line-chart-path { fill: none; stroke: var(--primary); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; filter: drop-shadow(0 4px 7px rgba(87,241,219,.18)); stroke-dasharray: 1; stroke-dashoffset: 1; animation: chart-draw .8s cubic-bezier(.16,1,.3,1) forwards; }
+.line-chart-point { fill: var(--background); stroke: var(--primary); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.line-chart-point.latest { fill: var(--primary); }
+@keyframes chart-draw { to { stroke-dashoffset: 0; } }
 .record-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .record-card { min-height: 112px; padding: 16px; display: flex; align-items: center; gap: 14px; border-radius: var(--radius-lg); color: inherit; text-align: left; }
 .record-card > span:last-child { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
@@ -496,6 +507,34 @@ svg { flex: 0 0 auto; }
 .finish-summary p { margin: 3px 0 0; color: var(--muted); font-size: .8rem; }
 
 /* Progress and history */
+.exercise-detail-header { min-height: 58px; margin-bottom: 24px; display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 15px; }
+.exercise-detail-header h1 { overflow: hidden; font-size: clamp(1.65rem, 5vw, 2.35rem); text-overflow: ellipsis; white-space: nowrap; }
+.exercise-detail-header p { margin: 5px 0 0; color: var(--muted); font-size: .8rem; text-transform: capitalize; }
+.exercise-chart-section { overflow: hidden; border: 1px solid rgba(186,202,197,.11); border-radius: 16px; background: rgba(19,27,46,.58); }
+.exercise-chart-summary { min-height: 98px; padding: 20px 22px 12px; display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; }
+.exercise-chart-summary h2 { font-size: 1.5rem; }
+.exercise-chart-summary p { margin: 6px 0 0; color: var(--muted); font-size: .78rem; text-transform: capitalize; }
+.exercise-chart-summary > strong { flex: 0 0 auto; color: var(--primary); font: 700 clamp(1.35rem, 4vw, 2rem) 'Hanken Grotesk'; font-variant-numeric: tabular-nums; }
+.exercise-chart-summary > strong small { font: 600 .62rem 'JetBrains Mono'; text-transform: uppercase; }
+.exercise-line-chart { height: 300px; padding: 8px 18px 0; }
+.exercise-metric-tabs { overflow-x: auto; display: flex; gap: 7px; padding: 14px 18px 17px; border-top: 1px solid rgba(186,202,197,.08); scrollbar-width: none; }
+.exercise-metric-tabs::-webkit-scrollbar { display: none; }
+.exercise-metric-tabs button { min-width: max-content; min-height: 42px; padding: 0 15px; border: 1px solid transparent; border-radius: 999px; background: var(--surface-high); color: var(--muted); font-size: .76rem; font-weight: 700; transition: color .18s, background .18s, border-color .18s; }
+.exercise-metric-tabs button:hover { color: var(--text); }
+.exercise-metric-tabs button.active { border-color: rgba(87,241,219,.36); background: var(--primary); color: var(--on-primary); }
+.exercise-detail-heading { align-items: end; }
+.exercise-detail-heading p { max-width: 600px; margin: 7px 0 0; color: var(--muted); font-size: .84rem; line-height: 1.5; }
+.exercise-detail-heading > svg { color: #ffc477; }
+.exercise-record-list { overflow: hidden; margin: 0; border: 1px solid rgba(186,202,197,.1); border-radius: 16px; background: rgba(19,27,46,.5); }
+.exercise-record-list > div { min-height: 70px; padding: 13px 17px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(186,202,197,.08); }
+.exercise-record-list > div:last-child { border-bottom: 0; }
+.exercise-record-list dt { min-width: 0; display: flex; align-items: center; gap: 9px; }
+.exercise-record-list dt > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.exercise-record-list dt small { padding: 4px 7px; border-radius: 999px; background: rgba(179,185,255,.08); color: var(--indigo); font: 500 .56rem 'JetBrains Mono'; text-transform: uppercase; white-space: nowrap; }
+.exercise-record-list dd { margin: 0; flex: 0 0 auto; color: var(--primary); font: 700 1.05rem 'JetBrains Mono'; font-variant-numeric: tabular-nums; }
+.exercise-record-list dd small { font-size: .58rem; text-transform: uppercase; }
+.exercise-detail-page .history-session { border: 1px solid rgba(186,202,197,.1); background: rgba(19,27,46,.5); }
+.exercise-history-empty { min-height: 150px; border: 1px solid rgba(186,202,197,.1); border-radius: 16px; background: rgba(19,27,46,.5); }
 .progress-header { align-items: flex-end; }
 .progress-header p { max-width: 580px; margin: 10px 0 0; color: var(--muted); line-height: 1.55; }
 .progress-overview { overflow: hidden; display: grid; grid-template-columns: minmax(260px, .85fr) minmax(0, 1.15fr); border: 1px solid rgba(186,202,197,.11); border-radius: 16px; background: rgba(19,27,46,.72); }
@@ -880,6 +919,15 @@ input:focus, select:focus, textarea:focus { border-color: rgba(87,241,219,.6); b
   .profile-stats > span { min-width: 0; padding: 10px 8px; text-align: center; }
   .add-row { flex-direction: column; }
   .add-row .primary-button { width: 100%; }
+  .exercise-detail-header { margin-bottom: 18px; }
+  .exercise-chart-summary { min-height: 90px; padding: 17px 16px 8px; }
+  .exercise-chart-summary > strong { max-width: 46%; text-align: right; }
+  .exercise-line-chart { height: 245px; padding-inline: 8px; }
+  .exercise-metric-tabs { margin-inline: 0; padding-inline: 14px; scroll-snap-type: x proximity; }
+  .exercise-metric-tabs button { scroll-snap-align: start; }
+  .exercise-detail-heading { align-items: flex-start; }
+  .exercise-record-list > div { min-height: 66px; padding-inline: 14px; }
+  .exercise-record-list dt { align-items: flex-start; flex-direction: column; gap: 4px; }
   .progress-header { align-items: flex-start; flex-direction: column; }
   .progress-header .secondary-button { width: 100%; min-height: 44px; padding-inline: 14px; }
   .progress-header p { font-size: .82rem; }
