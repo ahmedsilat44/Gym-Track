@@ -15,6 +15,7 @@ The frontend is React + Vite and can be hosted as a static site. Each installati
 - Exercise history, volume trends, and CSV export.
 - Athlete profiles and username search.
 - Open registration with an administrator-approved waitlist.
+- Public feature-request board with administrator approval before publication.
 - Mobile admin console for approving, rejecting, and revoking member access.
 - Athlete profile pages with recent posts and published workout/routine collections.
 - Friend requests plus friends-only and public social posts.
@@ -35,7 +36,7 @@ Supabase Auth ---- PostgreSQL tables
                          +-- Row Level Security policies
 ```
 
-There is no custom backend server and no elevated Supabase credential in the application. Every browser request runs as either the Supabase `anon` role or the signed-in user's `authenticated` role. This app grants no table access to `anon`; users must sign in before cloud data is loaded.
+There is no custom backend server and no elevated Supabase credential in the application. Every browser request runs as either the Supabase `anon` role or the signed-in user's `authenticated` role. This app grants no table access to `anon`. The signed-out feature board uses two narrow RPCs: one returns approved request text without submitter details, and one accepts bounded submissions for administrator review.
 
 ## Security model
 
@@ -52,6 +53,8 @@ There is no custom backend server and no elevated Supabase credential in the app
 | Friends-only posts | Author and accepted friends | Author only |
 | Public posts | Any approved member of the same Supabase project | Author only |
 | Likes and comments | Anyone who can read the post | Signed-in author of the like/comment |
+| Approved feature requests | Anyone, including signed-out visitors; submitter details are excluded | Administrators only |
+| Pending/rejected feature requests and submitter contact | Administrators only | Administrators only |
 
 Detailed sets and workout history are never exposed to friends. A workout appears on the social board only when the athlete checks **Share a progress summary** at completion. That post contains totals and exercise names, not individual set rows.
 
@@ -112,7 +115,10 @@ Open **SQL Editor** in the new Supabase project and run these files in order:
 9. [`supabase/migrations/20260809120000_admin_usage_analytics.sql`](supabase/migrations/20260809120000_admin_usage_analytics.sql) — adds privacy-safe daily usage counters and administrator-only scaling analytics.
 10. [`supabase/migrations/20260809130000_three_month_set_retention.sql`](supabase/migrations/20260809130000_three_month_set_retention.sql) — stores permanent per-session exercise bests and schedules raw-set deletion after three months.
 11. [`supabase/migrations/20260809140000_index_analytics_foreign_keys.sql`](supabase/migrations/20260809140000_index_analytics_foreign_keys.sql) — covers analytics and approval foreign keys for scalable deletes and joins.
-12. [`supabase/verify-security.sql`](supabase/verify-security.sql) — read-only security, ownership-integrity, grant, approval, analytics, retention, and policy checks.
+12. [`supabase/migrations/20260809150000_fix_admin_member_analytics_types.sql`](supabase/migrations/20260809150000_fix_admin_member_analytics_types.sql) — keeps administrator analytics return types compatible with PostgreSQL aggregate results.
+13. [`supabase/migrations/20260809160000_public_feature_board.sql`](supabase/migrations/20260809160000_public_feature_board.sql) — adds anonymous feature submissions, approved-only public reads, and administrator moderation RPCs.
+14. [`supabase/migrations/20260809161000_harden_public_feature_board.sql`](supabase/migrations/20260809161000_harden_public_feature_board.sql) — explicitly denies direct table access and covers feature-board foreign keys.
+15. [`supabase/verify-security.sql`](supabase/verify-security.sql) — read-only security, ownership-integrity, grant, approval, analytics, retention, feature-board, and policy checks.
 
 The verification script should complete without raising an exception. Its final query should return no execute grants for the trigger-only functions.
 
@@ -177,6 +183,12 @@ The admin console shows completed workouts, routines created, active days, last 
 “DB requests” means calls made through Supabase's database REST API. It is a stable client-side capacity signal, but it is not the exact number of internal PostgreSQL statements: one API call can execute more than one statement inside a function or trigger. Counters flush every 30 seconds and when the app becomes hidden, so very short sessions can be undercounted.
 
 Only daily totals are stored. The analytics system does not retain SQL text, request paths, payloads, IP addresses, or device information. Members cannot read the analytics table directly; approved users may only increment their own daily aggregate through `record_app_usage`, while `admin_member_analytics` requires an approved administrator.
+
+#### Feature request moderation
+
+The login screen previews approved requests and links to the public board at `#/features`. Visitors do not need an account to view or submit a request. New submissions remain `pending` and never appear publicly until an approved administrator opens **Settings → Admin console → Feature review** and selects **Approve**.
+
+Administrators can move published requests through **Open**, **Planned**, and **Shipped**, or reject them to remove them from the public board. Submitter name and email are returned only by the administrator RPC. Anonymous and authenticated browser clients have no direct `SELECT`, `INSERT`, `UPDATE`, or `DELETE` grant on the underlying table.
 
 #### Workout-history retention
 

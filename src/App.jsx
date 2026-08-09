@@ -19,6 +19,7 @@ const Profile = lazy(() => import('./pages/Profile'))
 const Admin = lazy(() => import('./pages/Admin'))
 const PendingAccess = lazy(() => import('./pages/PendingAccess'))
 const PasswordReset = lazy(() => import('./pages/PasswordReset'))
+const FeatureBoard = lazy(() => import('./pages/FeatureBoard'))
 
 const staticRoutes = {
   '/': Dashboard,
@@ -60,6 +61,7 @@ function LoadingScreen() {
 function ProtectedApp() {
   const { user, loading, isApproved, isAdmin, isPasswordRecovery } = useAuth()
   const { pathname } = useLocation()
+  if (pathname === '/features') return <Suspense fallback={<LoadingScreen />}><FeatureBoard /></Suspense>
   if (loading) return <LoadingScreen />
   if (!user) return <Suspense fallback={<LoadingScreen />}><Login /></Suspense>
   if (isPasswordRecovery) return <Suspense fallback={<LoadingScreen />}><PasswordReset /></Suspense>

@@ -1,9 +1,11 @@
-import { Activity, ArrowLeft, CalendarDays, Check, Clock3, Database, Dumbbell, RefreshCw, Search, ShieldCheck, UserRoundCheck, UserRoundX } from 'lucide-react'
+import { Activity, ArrowLeft, CalendarDays, Check, Clock3, Database, Dumbbell, Lightbulb, RefreshCw, Search, ShieldCheck, UserRoundCheck, UserRoundX } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { featureStatusLabel, listAdminFeatureRequests, setFeatureRequestStatus } from '../lib/featureRequests'
 import { useNavigate } from '../router'
 
 const filters = ['pending', 'approved', 'rejected', 'all']
+const featureFilters = ['pending', 'approved', 'planned', 'completed', 'rejected', 'all']
 
 const lastActiveLabel = (value) => {
   if (!value) return 'No tracked activity'
@@ -25,6 +27,11 @@ export default function Admin() {
   const [busyId, setBusyId] = useState('')
   const [error, setError] = useState('')
   const [analyticsWarning, setAnalyticsWarning] = useState('')
+  const [featureRequests, setFeatureRequests] = useState([])
+  const [featureFilter, setFeatureFilter] = useState('pending')
+  const [featureLoading, setFeatureLoading] = useState(true)
+  const [featureBusyId, setFeatureBusyId] = useState('')
+  const [featureError, setFeatureError] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -44,6 +51,16 @@ export default function Admin() {
 
   useEffect(() => { load() }, [load])
 
+  const loadFeatures = useCallback(async () => {
+    setFeatureLoading(true)
+    setFeatureError('')
+    try { setFeatureRequests(await listAdminFeatureRequests()) }
+    catch (caught) { setFeatureError(caught.message || 'Could not load feature requests.') }
+    finally { setFeatureLoading(false) }
+  }, [])
+
+  useEffect(() => { loadFeatures() }, [loadFeatures])
+
   const counts = useMemo(() => filters.reduce((result, status) => ({
     ...result,
     [status]: status === 'all' ? members.length : members.filter((member) => member.access_status === status).length,
@@ -54,6 +71,13 @@ export default function Admin() {
     return members.filter((member) => (filter === 'all' || member.access_status === filter)
       && (!needle || [member.email, member.display_name, member.username].some((value) => value?.toLowerCase().includes(needle))))
   }, [filter, members, query])
+
+  const featureCounts = useMemo(() => featureFilters.reduce((result, status) => ({
+    ...result,
+    [status]: status === 'all' ? featureRequests.length : featureRequests.filter((request) => request.status === status).length,
+  }), {}), [featureRequests])
+
+  const visibleFeatureRequests = useMemo(() => featureRequests.filter((request) => featureFilter === 'all' || request.status === featureFilter), [featureFilter, featureRequests])
 
   const analytics = useMemo(() => {
     const activeMembers = members.filter((member) => Number(member.active_days_30 || 0) > 0).length
@@ -75,6 +99,20 @@ export default function Admin() {
       setError(caught.message || 'Could not update access.')
     } finally {
       setBusyId('')
+    }
+  }
+
+  const updateFeatureStatus = async (request, status) => {
+    if (status === 'rejected' && !window.confirm(`Reject “${request.title}” and keep it hidden from public board?`)) return
+    setFeatureBusyId(request.id)
+    setFeatureError('')
+    try {
+      await setFeatureRequestStatus(request.id, status)
+      await loadFeatures()
+    } catch (caught) {
+      setFeatureError(caught.message || 'Could not update feature request.')
+    } finally {
+      setFeatureBusyId('')
     }
   }
 
@@ -101,6 +139,31 @@ export default function Admin() {
           <div className="glass-card"><CalendarDays /><span><strong>{analytics.requestsPerActiveDay}</strong><small>Requests / active day</small></span></div>
         </div>
         <p className="admin-analytics-note">DB requests count Supabase database API calls, not internal PostgreSQL statements. Daily totals contain no query text, payloads, routes, IP addresses, or device data.</p>
+      </section>
+
+      <section className="admin-feature-section" aria-labelledby="admin-feature-title">
+        <div className="admin-feature-heading"><div><h2 id="admin-feature-title">Feature review</h2><p>Approve requests before they become public. Contact details remain admin-only.</p></div><span><Lightbulb />{featureCounts.pending || 0} waiting</span></div>
+        <div className="admin-filters feature-admin-filters" role="group" aria-label="Filter feature requests">{featureFilters.map((status) => <button key={status} aria-pressed={featureFilter === status} className={featureFilter === status ? 'active' : ''} onClick={() => setFeatureFilter(status)}>{featureStatusLabel(status)}<span>{featureCounts[status] || 0}</span></button>)}</div>
+        {featureError && <div className="form-error admin-error" role="alert">{featureError}</div>}
+        {featureLoading ? <div className="admin-loading"><RefreshCw className="spin" /> Loading requestsâ€¦</div> : (
+          <div className="admin-feature-list">
+            {visibleFeatureRequests.map((request) => {
+              const busy = featureBusyId === request.id
+              return <article className="admin-feature-row" key={request.id}>
+                <span className={`feature-status ${request.status}`}>{featureStatusLabel(request.status)}</span>
+                <div className="admin-feature-copy"><h3>{request.title}</h3><p>{request.description}</p><small>{request.submitter_name} Â· {request.submitter_email} Â· {new Date(request.created_at).toLocaleDateString()}</small></div>
+                <div className="admin-feature-actions">
+                  {['pending', 'rejected'].includes(request.status) && <button className="primary-button compact" disabled={busy} onClick={() => updateFeatureStatus(request, 'approved')}><Check /> Approve</button>}
+                  {request.status === 'approved' && <button className="secondary-button compact" disabled={busy} onClick={() => updateFeatureStatus(request, 'planned')}><Clock3 /> Plan</button>}
+                  {request.status === 'planned' && <button className="primary-button compact" disabled={busy} onClick={() => updateFeatureStatus(request, 'completed')}><Check /> Mark shipped</button>}
+                  {['planned', 'completed'].includes(request.status) && <button className="secondary-button compact" disabled={busy} onClick={() => updateFeatureStatus(request, 'approved')}>Reopen</button>}
+                  {request.status !== 'rejected' && <button className="danger-button" disabled={busy} onClick={() => updateFeatureStatus(request, 'rejected')}><UserRoundX /> Reject</button>}
+                </div>
+              </article>
+            })}
+            {!visibleFeatureRequests.length && <div className="admin-empty">No requests in this lane.</div>}
+          </div>
+        )}
       </section>
 
       <section className="admin-tools">

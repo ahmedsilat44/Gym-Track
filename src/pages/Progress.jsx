@@ -22,6 +22,8 @@ const setVolume = (set) => Number(set.weight || 0) * Number(set.reps || 0)
 
 const formatVolume = (value) => Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })
 
+const balanceColors = ['#57f1db', '#ffb2b9', '#b3b9ff', '#ffc477', '#74c7ff', '#c99cff', '#8ade9b']
+
 export default function Progress() {
   const navigate = useNavigate()
   const { categories, exercises, sessions, sets, sessionRecords, records, preferences, loading } = useData()
@@ -102,6 +104,29 @@ export default function Progress() {
       .sort((a, b) => b.sessionCount - a.sessionCount || a.name.localeCompare(b.name))
   }, [categories, exercises, sessionRecords, stats.completedInWindow])
 
+  const balanceSlices = useMemo(() => {
+    const trainedCategories = categoryFrequency.filter((category) => category.sessionCount > 0)
+    const visibleCategories = trainedCategories.length > 7
+      ? [
+          ...trainedCategories.slice(0, 6),
+          trainedCategories.slice(6).reduce((other, category) => ({
+            ...other,
+            sessionCount: other.sessionCount + category.sessionCount,
+            exerciseCount: other.exerciseCount + category.exerciseCount,
+          }), { id: 'other', name: 'Other', sessionCount: 0, exerciseCount: 0 }),
+        ]
+      : trainedCategories
+    const total = visibleCategories.reduce((sum, category) => sum + category.sessionCount, 0)
+
+    return visibleCategories.map((category, index) => ({
+      ...category,
+      color: balanceColors[index],
+      percent: total ? category.sessionCount / total * 100 : 0,
+    }))
+  }, [categoryFrequency])
+
+  const balanceTotal = balanceSlices.reduce((sum, category) => sum + category.sessionCount, 0)
+
   const recentPrs = useMemo(() => sessionRecords
     .filter((record) => record.is_all_time_pr)
     .sort((a, b) => new Date(b.recorded_at) - new Date(a.recorded_at))
@@ -151,24 +176,33 @@ export default function Progress() {
 
       <section className="section-block">
         <div className="section-heading progress-section-heading">
-          <div><h2>Training balance</h2><p>How often each category appeared in your last three months of workouts.</p></div>
+          <div><h2 id="training-balance-title">Training balance</h2><p>Share of category appearances across your last three months of workouts.</p></div>
           <span className="workout-window"><CalendarDays size={16} />{stats.completedInWindow.length} workouts</span>
         </div>
-        {categoryFrequency.length ? (
-          <div className="category-frequency-list">
-            {categoryFrequency.map((category, index) => {
-              const percent = stats.completedInWindow.length ? Math.min(100, category.sessionCount / stats.completedInWindow.length * 100) : 0
-              return (
-                <div className="category-frequency-row" key={category.id}>
-                  <span className={`goal-icon tone-${index % 4}`}><Dumbbell /></span>
-                  <span className="category-frequency-copy"><strong>{category.name}</strong><small>{category.exerciseCount} exercises</small></span>
-                  <span className="category-frequency-value"><strong>{category.sessionCount}</strong><small>sessions</small></span>
-                  <span className="frequency-track" role="progressbar" aria-label={`${category.name}, ${category.sessionCount} of ${stats.completedInWindow.length} workouts`} aria-valuemin="0" aria-valuemax={stats.completedInWindow.length || 1} aria-valuenow={category.sessionCount}><span style={{ width: `${percent}%` }} /></span>
-                </div>
-              )
-            })}
-          </div>
-        ) : <div className="empty-state progress-empty"><Dumbbell /><h3>No categories yet</h3><p>Create an exercise category to see your training balance.</p></div>}
+        {balanceSlices.length ? (
+          <figure className="training-balance-panel" aria-labelledby="training-balance-title">
+            <div className="balance-donut">
+              <svg viewBox="0 0 100 100" aria-hidden="true">
+                <circle className="balance-donut-track" cx="50" cy="50" r="34" />
+                {balanceSlices.map((category, index) => {
+                  const offset = balanceSlices.slice(0, index).reduce((sum, slice) => sum + slice.percent, 0)
+                  return <circle className="balance-donut-slice" cx="50" cy="50" r="34" pathLength="100" strokeDasharray={`${category.percent} ${100 - category.percent}`} strokeDashoffset={-offset} style={{ '--slice-color': category.color }} key={category.id} />
+                })}
+              </svg>
+              <span className="balance-donut-label"><strong>{balanceTotal}</strong><small>category<br />appearances</small></span>
+            </div>
+            <ul className="balance-legend" aria-label="Category distribution">
+              {balanceSlices.map((category) => (
+                <li key={category.id}>
+                  <i style={{ '--slice-color': category.color }} aria-hidden="true" />
+                  <span><strong title={category.name}>{category.name}</strong><small>{category.sessionCount} {category.sessionCount === 1 ? 'session' : 'sessions'}</small></span>
+                  <b>{Math.round(category.percent)}%</b>
+                </li>
+              ))}
+            </ul>
+            <figcaption className="visually-hidden">{balanceSlices.map((category) => `${category.name}: ${category.sessionCount} sessions, ${Math.round(category.percent)} percent`).join('. ')}.</figcaption>
+          </figure>
+        ) : <div className="empty-state progress-empty"><Dumbbell /><h3>No training balance yet</h3><p>{categoryFrequency.length ? 'Complete a workout to see your category distribution.' : 'Create an exercise category to see your training balance.'}</p></div>}
       </section>
 
       <section className="section-block">

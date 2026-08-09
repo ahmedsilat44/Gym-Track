@@ -54,6 +54,26 @@ begin
     raise exception 'Authenticated clients can directly change permanent session records.';
   end if;
 
+  if to_regclass('public.feature_requests') is null then
+    raise exception 'Public feature-board migration has not been applied.';
+  end if;
+
+  if has_table_privilege('anon', 'public.feature_requests', 'SELECT')
+    or has_table_privilege('anon', 'public.feature_requests', 'INSERT')
+    or has_table_privilege('authenticated', 'public.feature_requests', 'SELECT')
+    or has_table_privilege('authenticated', 'public.feature_requests', 'INSERT')
+    or has_table_privilege('authenticated', 'public.feature_requests', 'UPDATE')
+    or has_table_privilege('authenticated', 'public.feature_requests', 'DELETE') then
+    raise exception 'Browser clients can access feature requests directly.';
+  end if;
+
+  if not has_function_privilege('anon', 'public.list_public_feature_requests()', 'EXECUTE')
+    or not has_function_privilege('anon', 'public.submit_feature_request(text,text,text,text)', 'EXECUTE')
+    or has_function_privilege('anon', 'public.admin_list_feature_requests()', 'EXECUTE')
+    or has_function_privilege('anon', 'public.admin_set_feature_request_status(uuid,text)', 'EXECUTE') then
+    raise exception 'Feature-board RPC grants are incorrect.';
+  end if;
+
   if not exists (
     select 1
     from information_schema.columns
@@ -74,6 +94,7 @@ begin
     select 1
     from pg_tables as app_table
     where app_table.schemaname = 'public'
+      and app_table.tablename <> 'feature_requests'
       and not exists (
         select 1
         from pg_policies as policy
@@ -102,8 +123,12 @@ begin
     or to_regprocedure('public.record_app_usage(integer,boolean)') is null
     or to_regprocedure('public.admin_member_analytics()') is null
     or to_regprocedure('public.refresh_exercise_records(uuid,uuid)') is null
-    or to_regprocedure('public.prune_expired_sets()') is null then
-    raise exception 'One or more approval, analytics, or retention functions are missing.';
+    or to_regprocedure('public.prune_expired_sets()') is null
+    or to_regprocedure('public.list_public_feature_requests()') is null
+    or to_regprocedure('public.submit_feature_request(text,text,text,text)') is null
+    or to_regprocedure('public.admin_list_feature_requests()') is null
+    or to_regprocedure('public.admin_set_feature_request_status(uuid,text)') is null then
+    raise exception 'One or more approval, analytics, retention, or feature-board functions are missing.';
   end if;
 
   if exists (
@@ -118,11 +143,15 @@ begin
       to_regprocedure('public.record_app_usage(integer,boolean)'),
       to_regprocedure('public.admin_member_analytics()'),
       to_regprocedure('public.refresh_exercise_records(uuid,uuid)'),
-      to_regprocedure('public.prune_expired_sets()')
+      to_regprocedure('public.prune_expired_sets()'),
+      to_regprocedure('public.list_public_feature_requests()'),
+      to_regprocedure('public.submit_feature_request(text,text,text,text)'),
+      to_regprocedure('public.admin_list_feature_requests()'),
+      to_regprocedure('public.admin_set_feature_request_status(uuid,text)')
     )
       and not prosecdef
   ) then
-    raise exception 'Approval, analytics, and retention functions must remain security-definer functions.';
+    raise exception 'Approval, analytics, retention, and feature-board functions must remain security-definer functions.';
   end if;
 
   if not exists (

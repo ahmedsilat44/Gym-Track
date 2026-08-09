@@ -1,15 +1,30 @@
-import { Activity, ArrowRight, LockKeyhole, Mail } from 'lucide-react'
-import { useState } from 'react'
+import { Activity, ArrowRight, CheckCircle2, Lightbulb, LockKeyhole, Mail } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { featureStatusLabel, listPublicFeatureRequests } from '../lib/featureRequests'
+import { useNavigate } from '../router'
 
 export default function Login() {
   const { signIn, signUp, requestPasswordReset } = useAuth()
+  const navigate = useNavigate()
   const allowSignup = import.meta.env.VITE_ALLOW_SIGNUP !== 'false'
   const [mode, setMode] = useState('signin')
   const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  const [featurePreview, setFeaturePreview] = useState([])
+  const [featurePreviewLoading, setFeaturePreviewLoading] = useState(true)
+  const [featurePreviewError, setFeaturePreviewError] = useState('')
+
+  useEffect(() => {
+    let active = true
+    listPublicFeatureRequests()
+      .then((items) => { if (active) setFeaturePreview(items.slice(0, 3)) })
+      .catch(() => { if (active) setFeaturePreviewError('Feature preview could not load.') })
+      .finally(() => { if (active) setFeaturePreviewLoading(false) })
+    return () => { active = false }
+  }, [])
 
   const submit = async (event) => {
     event.preventDefault()
@@ -56,6 +71,18 @@ export default function Login() {
         {mode === 'reset' && <button className="text-button" onClick={() => { setMode('signin'); setError(''); setMessage('') }}>Back to sign in</button>}
         {allowSignup && mode !== 'reset' && <button className="text-button" onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}>{mode === 'signin' ? 'New here? Join the waitlist' : 'Already have an account? Sign in'}</button>}
         {!allowSignup && <p className="form-note">This is a private training network. Ask its owner for an invitation.</p>}
+      </section>
+      <section className="login-feature-board" aria-labelledby="login-feature-title">
+        <div className="login-feature-heading">
+          <div><span><Lightbulb /></span><div><h2 id="login-feature-title">Built with community</h2><p>View approved ideas or request what Spotter should build next.</p></div></div>
+          <button className="secondary-button compact" onClick={() => navigate('/features')}>Open feature board <ArrowRight /></button>
+        </div>
+        <div className="login-feature-preview">
+          {featurePreviewLoading && <div className="login-feature-state" role="status"><Lightbulb /><span><strong>Loading feature boardâ€¦</strong><small>Checking approved community requests.</small></span></div>}
+          {featurePreview.map((request) => <article key={request.id}><span className={`feature-status ${request.status}`}>{request.status === 'completed' && <CheckCircle2 />}{featureStatusLabel(request.status)}</span><h3>{request.title}</h3><p>{request.description}</p></article>)}
+          {!featurePreviewLoading && featurePreviewError && <button className="login-feature-empty" onClick={() => navigate('/features')}><Lightbulb /><span><strong>{featurePreviewError}</strong><small>Open feature board and try again.</small></span><ArrowRight /></button>}
+          {!featurePreviewLoading && !featurePreviewError && !featurePreview.length && <button className="login-feature-empty" onClick={() => navigate('/features')}><Lightbulb /><span><strong>Feature board is ready.</strong><small>View requests or send first idea.</small></span><ArrowRight /></button>}
+        </div>
       </section>
     </main>
   )
