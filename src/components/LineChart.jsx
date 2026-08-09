@@ -47,7 +47,7 @@ export default function LineChart({ values, labels, ariaLabel = 'Progress over t
           return <g key={tick}><line className="line-chart-grid" x1={PADDING.left} y1={y} x2={width - PADDING.right} y2={y} /><text className="line-chart-y-label" x={PADDING.left - 10} y={y + 4}>{formatTick(tick)}</text></g>
         })}
         <path className="line-chart-area" d={areaPath} />
-        <path className="line-chart-path" d={linePath} pathLength="1" />
+        <path className="line-chart-path" d={linePath} />
         {points.map((point, index) => <circle className={`line-chart-point ${index === points.length - 1 ? 'latest' : ''}`} key={`${point.label}-${index}`} cx={point.x} cy={point.y} r={index === points.length - 1 ? 5 : 3.5} />)}
         {points.map((point, index) => (index % labelStep === 0 || index === points.length - 1) && <text className={`line-chart-x-label ${index === points.length - 1 ? 'latest' : ''}`} key={`${point.label}-label`} x={point.x} y={HEIGHT - 12} textAnchor={index === 0 ? 'start' : index === points.length - 1 ? 'end' : 'middle'}>{point.label}</text>)}
       </svg>
