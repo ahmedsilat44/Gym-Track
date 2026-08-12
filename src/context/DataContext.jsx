@@ -288,14 +288,16 @@ export function DataProvider({ children }) {
     }
     if (isDemo) {
       if (exerciseId && !data.exercises.some((item) => item.id === exerciseId)) throw new Error('The exercise being edited no longer exists.')
-      const exercises = exerciseId ? data.exercises.map((item) => item.id === exerciseId ? { ...item, ...payload } : item) : [...data.exercises, { ...payload, id: crypto.randomUUID(), is_archived: false }]
+      const createdExercise = exerciseId ? null : { ...payload, id: crypto.randomUUID(), is_archived: false }
+      const exercises = exerciseId ? data.exercises.map((item) => item.id === exerciseId ? { ...item, ...payload } : item) : [...data.exercises, createdExercise]
       const normalizedName = cleanName.toLowerCase().replace(/\s+/g, ' ')
       const exerciseCatalog = data.exerciseCatalog.some((item) => item.normalized_name === normalizedName)
         ? data.exerciseCatalog
         : [...data.exerciseCatalog, { id: crypto.randomUUID(), normalized_name: normalizedName, ...payload, category_id: undefined, created_by: user.id }]
-      return persistDemo({ ...data, exercises, exerciseCatalog })
+      persistDemo({ ...data, exercises, exerciseCatalog })
+      return exerciseId ? exercises.find((item) => item.id === exerciseId) : createdExercise
     }
-    if (!exerciseId) return runRemote(supabase.from('exercises').insert({ ...payload, user_id: user.id }))
+    if (!exerciseId) return runRemote(supabase.from('exercises').insert({ ...payload, user_id: user.id }).select('id').single())
 
     const result = await supabase.from('exercises').update(payload).eq('id', exerciseId).eq('user_id', user.id).select('id').maybeSingle()
     if (result.error) throw result.error

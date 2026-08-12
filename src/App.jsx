@@ -13,6 +13,8 @@ const Progress = lazy(() => import('./pages/Progress'))
 const Records = lazy(() => import('./pages/Records'))
 const ExerciseHistory = lazy(() => import('./pages/ExerciseHistory'))
 const Settings = lazy(() => import('./pages/Settings'))
+const ExerciseLibrary = lazy(() => import('./pages/ExerciseLibrary'))
+const CategoryManager = lazy(() => import('./pages/CategoryManager'))
 const Planner = lazy(() => import('./pages/Planner'))
 const Social = lazy(() => import('./pages/Social'))
 const Profile = lazy(() => import('./pages/Profile'))
@@ -32,6 +34,8 @@ const staticRoutes = {
   '/social': Social,
   '/profile': Profile,
   '/settings': Settings,
+  '/exercises': ExerciseLibrary,
+  '/categories': CategoryManager,
   '/admin': Admin,
 }
 

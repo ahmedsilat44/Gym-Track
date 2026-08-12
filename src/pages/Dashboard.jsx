@@ -55,7 +55,7 @@ export default function Dashboard() {
           <span className="eyebrow">This week</span>
           <h2>{stats.weekSessions.length ? 'Momentum is building.' : 'Ready when you are.'}</h2>
           <p>{stats.weekSessions.length} sessions complete · {stats.streak} day streak</p>
-          <button className="primary-button compact" onClick={() => navigate(activeWorkout ? '/session' : '/start')}><Play size={18} fill="currentColor" />{activeWorkout ? 'Resume workout' : 'Start workout'}</button>
+          <button className="primary-button compact" onClick={() => navigate(activeWorkout ? '/session' : '/planner')}><Play size={18} fill="currentColor" />{activeWorkout ? 'Resume workout' : 'Choose a workout'}</button>
         </div>
         <ProgressRing value={Math.min(100, stats.weekSessions.length / 4 * 100)} size={92} label={`${stats.weekSessions.length}/4`} />
       </section>

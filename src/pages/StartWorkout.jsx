@@ -1,5 +1,6 @@
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Dumbbell, Search } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Dumbbell, Plus, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import ExerciseFormModal from '../components/ExerciseFormModal'
 import { useNavigate } from '../router'
 import { useData } from '../context/DataContext'
 import { fuzzySearch } from '../utils/fuzzySearch'
@@ -14,6 +15,7 @@ export default function StartWorkout() {
   const [type, setType] = useState('all')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [creatingExercise, setCreatingExercise] = useState(false)
 
   const activeCategories = categories.filter((item) => !item.is_archived).sort((a, b) => a.sort_order - b.sort_order)
   const activeExercises = exercises.filter((item) => !item.is_archived)
@@ -60,7 +62,7 @@ export default function StartWorkout() {
       {error && <div className="notice-toast error" role="alert">{error}</div>}
 
       <section className="selection-section">
-        <span className="eyebrow step-label">01 · Find movements</span>
+        <div className="section-heading"><div><span className="eyebrow step-label">01 · Find movements</span><h2>Choose from your library</h2></div><button className="secondary-button compact" onClick={() => setCreatingExercise(true)}><Plus size={17} /> Create exercise</button></div>
         <div className="exercise-filter-row">
           <label className="search-box"><Search size={19} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Fuzzy search exercises" /></label>
           <select value={type} onChange={(event) => setType(event.target.value)} aria-label="Filter by exercise type">
@@ -73,12 +75,13 @@ export default function StartWorkout() {
         <div className="section-heading"><div><span className="eyebrow step-label">02 · Pick exercises</span><h2>{selected.length} selected</h2></div>{visibleExercises.length > 0 && <button onClick={() => setSelected(visibleExercises.every((item) => selected.includes(item.id)) ? selected.filter((id) => !visibleExercises.some((item) => item.id === id)) : [...new Set([...selected, ...visibleExercises.map((item) => item.id)])])}>{visibleExercises.every((item) => selected.includes(item.id)) ? 'Clear visible' : 'Select visible'}</button>}</div>
         <div className="exercise-group-picker">
           {groups.map((group) => <section className="exercise-picker-group" key={group.id}><header><h3>{group.name}</h3><span>{group.exercises.length}</span></header><div className="picker-list">{group.exercises.map((exercise) => <button key={exercise.id} className={selected.includes(exercise.id) ? 'selected' : ''} onClick={() => toggle(exercise.id)}><span className="check-box">{selected.includes(exercise.id) && <Check />}</span><span><strong>{exercise.name}</strong><small>{exercise.exercise_type || 'strength'} · {exercise.is_bodyweight ? 'Bodyweight' : exercise.unit}</small></span></button>)}</div></section>)}
-          {!groups.length && <div className="empty-state glass-card"><Search /><h3>No exercises found</h3><p>Try a broader spelling or add a movement in Settings.</p></div>}
+          {!groups.length && <div className="empty-state glass-card"><Search /><h3>No exercises found</h3><p>Create a movement here, or browse your exercise library.</p><button className="secondary-button compact" onClick={() => navigate('/exercises')}>Open exercise library</button></div>}
         </div>
       </section>
 
       {selected.length > 0 && <section className="selection-section"><span className="eyebrow step-label">03 · Set the order</span><div className="order-list">{selected.map((id, index) => { const exercise = exercises.find((item) => item.id === id); const category = categories.find((item) => item.id === exercise?.category_id); return <div key={id}><span className="order-number">{String(index + 1).padStart(2, '0')}</span><span className="order-copy"><strong>{exercise?.name}</strong><small>{category?.name || 'Unassigned'}</small></span><span className="order-actions"><button disabled={index === 0} onClick={() => move(index, -1)} aria-label={`Move ${exercise?.name} up`}><ArrowUp /></button><button disabled={index === selected.length - 1} onClick={() => move(index, 1)} aria-label={`Move ${exercise?.name} down`}><ArrowDown /></button></span></div> })}</div></section>}
       <div className="sticky-action"><button className="primary-button" disabled={!selected.length || busy} onClick={start}>{busy ? 'Starting…' : `Start ${selected.length || ''} exercise workout`} <ArrowRight /></button></div>
+      {creatingExercise && <ExerciseFormModal onClose={() => setCreatingExercise(false)} onSaved={(saved) => { if (saved?.id) setSelected((current) => current.includes(saved.id) ? current : [...current, saved.id]); setQuery(''); setType('all') }} />}
     </main>
   )
 }
