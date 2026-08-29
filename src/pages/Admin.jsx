@@ -167,8 +167,8 @@ export default function Admin() {
       </section>
 
       <section className="admin-tools">
-        <div className="admin-filters" role="tablist">{filters.map((status) => <button key={status} role="tab" aria-selected={filter === status} className={filter === status ? 'active' : ''} onClick={() => setFilter(status)}>{status}<span>{counts[status] || 0}</span></button>)}</div>
-        <label className="search-box"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, username, or email" /></label>
+        <div className="admin-filters" role="group" aria-label="Filter members">{filters.map((status) => <button key={status} aria-pressed={filter === status} className={filter === status ? 'active' : ''} onClick={() => setFilter(status)}>{status}<span>{counts[status] || 0}</span></button>)}</div>
+        <label className="search-box"><Search /><input aria-label="Search members" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, username, or email" /></label>
       </section>
 
       {error && <div className="form-error admin-error" role="alert">{error}</div>}

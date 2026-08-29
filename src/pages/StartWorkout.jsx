@@ -64,7 +64,7 @@ export default function StartWorkout() {
       <section className="selection-section">
         <div className="section-heading"><div><span className="eyebrow step-label">01 · Find movements</span><h2>Choose from your library</h2></div><button className="secondary-button compact" onClick={() => setCreatingExercise(true)}><Plus size={17} /> Create exercise</button></div>
         <div className="exercise-filter-row">
-          <label className="search-box"><Search size={19} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Fuzzy search exercises" /></label>
+          <label className="search-box"><Search size={19} /><input aria-label="Search exercises" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Fuzzy search exercises" /></label>
           <select value={type} onChange={(event) => setType(event.target.value)} aria-label="Filter by exercise type">
             {exerciseTypes.map((item) => <option value={item} key={item}>{item === 'all' ? 'All types' : item[0].toUpperCase() + item.slice(1)}</option>)}
           </select>

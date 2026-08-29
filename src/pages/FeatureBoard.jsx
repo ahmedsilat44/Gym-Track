@@ -69,7 +69,7 @@ export default function FeatureBoard() {
       <header className="feature-board-hero">
         <span className="feature-hero-icon"><Lightbulb /></span>
         <div><h1>Help shape Spotter.</h1><p>See what community wants next, then add one clear request of your own.</p></div>
-        <a className="primary-button" href="#request-feature">Request a feature <ArrowRight /></a>
+        <button className="primary-button" type="button" onClick={() => document.getElementById('request-feature')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>Request a feature <ArrowRight /></button>
       </header>
 
       <div className="feature-board-layout">

@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-30T00:00:00Z",
+  "title": "Design System: Spotter",
+  "extensions": {
+    "colorMeta": {
+      "background": { "role": "neutral", "displayName": "Midnight Field", "canonical": "oklch(16% 0.03 260)", "tonalRamp": ["#060e20", "#0b1326", "#131b2e", "#171f33", "#222a3d", "#2d3449", "#586276", "#dae2fd"] },
+      "surface": { "role": "neutral", "displayName": "Console Surface", "canonical": "oklch(22% 0.03 260)", "tonalRamp": ["#060e20", "#0b1326", "#131b2e", "#171f33", "#222a3d", "#2d3449", "#586276", "#dae2fd"] },
+      "text": { "role": "neutral", "displayName": "Cool Readout", "canonical": "oklch(90% 0.03 260)", "tonalRamp": ["#20283d", "#3f4961", "#5e6981", "#7e89a0", "#9da9c0", "#bac7df", "#dae2fd", "#f8f9ff"] },
+      "muted": { "role": "neutral", "displayName": "Quiet Label", "canonical": "oklch(63% 0.03 170)", "tonalRamp": ["#1c2928", "#344543", "#4d625e", "#667e79", "#809a94", "#9bb6ae", "#b7d1c8", "#d4ede2"] },
+      "primary": { "role": "primary", "displayName": "Training Teal", "canonical": "oklch(88% 0.14 180)", "tonalRamp": ["#003731", "#00574d", "#006b5f", "#168b7d", "#2db3a2", "#3cddc7", "#57f1db", "#c5fff6"] },
+      "coral": { "role": "secondary", "displayName": "Target Coral", "canonical": "oklch(82% 0.1 15)", "tonalRamp": ["#400010", "#67001f", "#891933", "#ad3b4c", "#d45d6c", "#f48794", "#ffb2b9", "#ffdadc"] },
+      "indigo": { "role": "tertiary", "displayName": "Recovery Indigo", "canonical": "oklch(78% 0.1 285)", "tonalRamp": ["#000767", "#131e8c", "#3641a9", "#5965c8", "#7d89e6", "#a1adff", "#b3b9ff", "#e0e0ff"] },
+      "error": { "role": "error", "displayName": "Clear Error", "canonical": "oklch(80% 0.09 30)", "tonalRamp": ["#690005", "#93000a", "#ba1a1a", "#de3730", "#ff5449", "#ff897d", "#ffb4ab", "#ffdad6"] },
+      "warning": { "role": "warning", "displayName": "Load Amber", "canonical": "oklch(84% 0.12 75)", "tonalRamp": ["#3d2500", "#624000", "#896000", "#b58416", "#ddb03e", "#ffc477", "#ffdcaf", "#fff0dc"] },
+      "info": { "role": "info", "displayName": "Signal Blue", "canonical": "oklch(76% 0.1 245)", "tonalRamp": ["#002a4a", "#00426c", "#155d90", "#397db5", "#5a9fd9", "#86b9ff", "#c7ddff", "#edf4ff"] },
+      "success": { "role": "success", "displayName": "Completion Green", "canonical": "oklch(82% 0.12 145)", "tonalRamp": ["#0c351b", "#175629", "#2c783b", "#4a9b57", "#69bd75", "#8ade9b", "#bbf3c1", "#e6ffe4"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Athletic Display", "purpose": "Page outcomes, hero values, and high-confidence status." },
+      "headline": { "displayName": "Structured Headline", "purpose": "Page and section hierarchy." },
+      "body": { "displayName": "Readable Body", "purpose": "Descriptions, instructions, and form copy." },
+      "label": { "displayName": "Instrument Label", "purpose": "Counts, timestamps, weights, timers, and chart axes." }
+    },
+    "shadows": [
+      { "name": "ambient-panel", "value": "0 18px 50px rgba(2, 8, 23, .32)", "purpose": "Raised cards, hero panels, and dialogs." },
+      { "name": "teal-status", "value": "0 0 20px rgba(87, 241, 219, .12)", "purpose": "Current or selected training state only." }
+    ],
+    "motion": [
+      { "name": "state-standard", "value": "180ms ease", "purpose": "Button, navigation, and selection state changes." },
+      { "name": "progress-draw", "value": "800ms ease", "purpose": "Progress-ring updates; disabled for reduced motion." }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "320px" },
+      { "name": "content-max", "value": "1120px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one high-priority action in a local action group.",
+      "html": "<button class=\"ds-btn-primary\">START WORKOUT</button>",
+      "css": ".ds-btn-primary { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; padding: 0 22px; border: 0; border-radius: 999px; background: var(--primary); color: var(--on-primary); box-shadow: 0 10px 30px rgba(87,241,219,.14); font: 700 .9rem Inter, sans-serif; transition: transform .18s, filter .18s; } .ds-btn-primary:hover { filter: brightness(1.06); transform: translateY(-1px); } .ds-btn-primary:active { transform: scale(.98); } .ds-btn-primary:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A visible alternative action that must not compete with the primary action.",
+      "html": "<button class=\"ds-btn-secondary\">VIEW PLAN</button>",
+      "css": ".ds-btn-secondary { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; padding: 0 22px; border: 1px solid rgba(87,241,219,.45); border-radius: 999px; background: transparent; color: var(--primary); font: 700 .9rem Inter, sans-serif; transition: transform .18s, background .18s; } .ds-btn-secondary:hover { background: rgba(87,241,219,.08); transform: translateY(-1px); } .ds-btn-secondary:active { transform: scale(.98); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "The standard exercise and member search field.",
+      "html": "<label class=\"ds-search\"><span class=\"ds-search-icon\" aria-hidden=\"true\">⌕</span><input aria-label=\"Search exercises\" placeholder=\"Search exercises\"></label>",
+      "css": ".ds-search { min-height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 16px; border: 1px solid rgba(186,202,197,.12); border-radius: 16px; background: var(--surface-lowest); color: var(--muted); } .ds-search:focus-within { border-color: rgba(87,241,219,.55); box-shadow: 0 0 0 3px rgba(87,241,219,.06); } .ds-search-icon { font: 700 1.25rem Inter, sans-serif; } .ds-search input { width: 100%; min-height: 50px; border: 0; outline: 0; background: transparent; color: var(--text); font: .95rem Inter, sans-serif; } .ds-search input::placeholder { color: #71807d; }"
+    },
+    {
+      "name": "Glass Card",
+      "kind": "card",
+      "refersTo": "card-glass",
+      "description": "A raised content group for dashboard, workout, and progress modules.",
+      "html": "<section class=\"ds-glass-card\"><p class=\"ds-eyebrow\">THIS WEEK</p><strong>11,280 kg</strong><span>Training load</span></section>",
+      "css": ".ds-glass-card { display: grid; gap: 6px; padding: 18px; border: 1px solid rgba(186,202,197,.1); border-radius: 18px; background: linear-gradient(145deg, rgba(34,48,69,.78), rgba(20,31,50,.9)); box-shadow: inset 0 1px 0 rgba(255,255,255,.025), 0 18px 50px rgba(2,8,23,.32); color: var(--text); backdrop-filter: blur(18px); } .ds-glass-card strong { font: 800 1.55rem 'Hanken Grotesk', sans-serif; } .ds-glass-card span { color: var(--muted); font: .78rem Inter, sans-serif; } .ds-eyebrow { margin: 0; color: var(--muted); font: 600 .68rem 'JetBrains Mono', monospace; letter-spacing: .11em; }"
+    },
+    {
+      "name": "Metric Rail",
+      "kind": "chip",
+      "refersTo": "metric-rail",
+      "description": "A compact horizontal selector for one chart's alternate measures.",
+      "html": "<div class=\"ds-metric-rail\" role=\"group\" aria-label=\"Chart metric\"><button aria-pressed=\"true\">HEAVIEST WEIGHT</button><button aria-pressed=\"false\">ONE REP MAX</button></div>",
+      "css": ".ds-metric-rail { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0; } .ds-metric-rail button { min-height: 42px; flex: 0 0 auto; padding: 0 14px; border: 0; border-radius: 999px; background: var(--surface-high); color: var(--muted); font: 600 .65rem 'JetBrains Mono', monospace; letter-spacing: .04em; } .ds-metric-rail button[aria-pressed=true] { background: var(--primary); color: var(--on-primary); } .ds-metric-rail button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }"
+    },
+    {
+      "name": "Bottom Navigation",
+      "kind": "nav",
+      "refersTo": "nav-bottom",
+      "description": "The persistent mobile route switcher, fixed above the safe area.",
+      "html": "<nav class=\"ds-bottom-nav\" aria-label=\"Main navigation\"><a href=\"#\" aria-current=\"page\"><span>⌂</span>HOME</a><a href=\"#\"><span>◷</span>PLANNER</a><a href=\"#\"><span>◌</span>PROGRESS</a></nav>",
+      "css": ".ds-bottom-nav { display: flex; justify-content: space-around; align-items: center; min-height: 68px; padding: 6px 10px; border: 1px solid rgba(186,202,197,.1); border-radius: 22px; background: rgba(20,31,50,.86); box-shadow: 0 16px 40px rgba(0,0,0,.38); backdrop-filter: blur(24px); } .ds-bottom-nav a { position: relative; display: flex; min-width: 62px; min-height: 52px; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: 16px; color: #84938f; font: 500 .62rem 'JetBrains Mono', monospace; text-decoration: none; } .ds-bottom-nav a[aria-current=page] { background: rgba(87,241,219,.06); color: var(--primary); } .ds-bottom-nav a[aria-current=page]::after { content: ''; position: absolute; bottom: 3px; width: 4px; height: 4px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 8px var(--primary); } .ds-bottom-nav a:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Midnight Training Console.",
+    "overview": "Spotter should feel like a calm, capable training instrument: deep navy surroundings, bright teal confirmation, and precise numeric detail. It is made first for a phone held between sets, then expands into a spacious desktop workspace without losing that focused, athletic character. The atmosphere is premium and tactile rather than decorative. Layered navy surfaces, faint teal and indigo bloom, and restrained translucency give active controls depth.",
+    "keyCharacteristics": ["Mobile-first, thumb-reachable controls with safe-area-aware fixed navigation.", "Dark, high-legibility instrumentation with Hanken Grotesk headings and monospaced workout data.", "Teal-led action hierarchy; coral, indigo, and chart colors communicate distinct secondary states.", "Rounded layered cards, low-contrast boundaries, and gentle glows instead of harsh shadows.", "Charts and progress views that favor a continuous, readable signal over visual noise."],
+    "rules": [
+      { "name": "The Teal Action Rule", "body": "Use the primary token for the one action or state that matters most in a view: save, start, complete, selected, or current. Do not spend it on unrelated decoration.", "section": "colors" },
+      { "name": "The Dark Surface Rule", "body": "Build hierarchy by moving through the established surface stack and a soft outline before adding a new background color.", "section": "colors" },
+      { "name": "The Instrument Readout Rule", "body": "Any value a lifter compares between sets should use the label or metric treatment: compact, tabular-looking, and visually stable as a timer or count changes.", "section": "typography" },
+      { "name": "The Between-Sets Rule", "body": "The current action, live workout state, and continuation path stay reachable with one hand.", "section": "layout" },
+      { "name": "The Quiet Glow Rule", "body": "Teal glow belongs to active progress, primary actions, and focused status. Keep it soft and local.", "section": "elevation" },
+      { "name": "The Touch Shape Rule", "body": "Small controls may be visually compact, but their interactive area stays generous.", "section": "shapes" }
+    ],
+    "dos": ["Do give the most important action or current workout state the primary teal treatment.", "Do use JetBrains Mono for metrics that change during a workout, including rest timers and set counts.", "Do preserve 20px mobile gutters, 44px minimum touch targets, and safe-area spacing for fixed controls.", "Do make chart lines continuous across available dates and provide a plain-language summary outside the SVG.", "Do use the shared surface stack, border, shadow, and focus treatment before introducing a one-off visual style."],
+    "donts": ["Don't use teal, coral, indigo, and chart accents with equal visual weight in one component.", "Don't place critical actions only in hover states or below a fixed mobile control.", "Don't use heavy opaque shadows, pure black cards, or high-contrast borders as default depth cues.", "Don't animate timers or state changes when reduced-motion preferences request stillness.", "Don't rely on color alone to explain a status, selected state, or chart series."]
+  }
+}

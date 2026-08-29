@@ -234,9 +234,9 @@ export default function ActiveSession() {
       {prMessage && <div className="pr-toast"><Trophy /> <span><strong>PR unlocked</strong><small>{prMessage}</small></span></div>}
 
       <div className="exercise-switcher">
-        <button disabled={exerciseIndex === 0} onClick={() => goToExercise(exerciseIndex - 1)}><ChevronLeft /></button>
+        <button disabled={exerciseIndex === 0} onClick={() => goToExercise(exerciseIndex - 1)} aria-label="Previous exercise"><ChevronLeft /></button>
         <div><span className="eyebrow">Exercise {exerciseIndex + 1} of {sessionExercises.length}</span><h2>{exercise.name}</h2><small>{exercise.is_bodyweight ? 'Bodyweight movement' : exercise.unit.toUpperCase()}</small></div>
-        <button disabled={exerciseIndex === sessionExercises.length - 1} onClick={() => goToExercise(exerciseIndex + 1)}><ChevronRight /></button>
+        <button disabled={exerciseIndex === sessionExercises.length - 1} onClick={() => goToExercise(exerciseIndex + 1)} aria-label="Next exercise"><ChevronRight /></button>
       </div>
       <div className="exercise-dots">{sessionExercises.map((item, index) => <button key={item.id} aria-label={`Go to ${item.name}`} className={`${index === exerciseIndex ? 'active' : ''} ${sessionSets.some((set) => set.exercise_id === item.id) ? 'complete' : ''}`} onClick={() => goToExercise(index)} />)}</div>
       <button className="session-exercise-manager-button" onClick={() => { setManagerError(''); setShowExerciseManager(true) }}><ListPlus /> Add or remove exercises</button>
@@ -288,7 +288,7 @@ export default function ActiveSession() {
         </section>
         <section className="session-exercise-catalog">
           <span className="eyebrow">Add an exercise</span>
-          <div className="exercise-filter-row"><label className="search-box"><Search size={19} /><input value={exerciseQuery} onChange={(event) => setExerciseQuery(event.target.value)} placeholder="Search exercises" /></label><select value={exerciseType} onChange={(event) => setExerciseType(event.target.value)} aria-label="Filter by exercise type">{exerciseTypes.map((item) => <option value={item} key={item}>{item === 'all' ? 'All types' : item[0].toUpperCase() + item.slice(1)}</option>)}</select></div>
+          <div className="exercise-filter-row"><label className="search-box"><Search size={19} /><input aria-label="Search exercises" value={exerciseQuery} onChange={(event) => setExerciseQuery(event.target.value)} placeholder="Search exercises" /></label><select value={exerciseType} onChange={(event) => setExerciseType(event.target.value)} aria-label="Filter by exercise type">{exerciseTypes.map((item) => <option value={item} key={item}>{item === 'all' ? 'All types' : item[0].toUpperCase() + item.slice(1)}</option>)}</select></div>
           <div className="session-add-list">{availableExercises.map((item) => { const category = categories.find((entry) => entry.id === item.category_id); return <button disabled={busy} onClick={() => addExercise(item.id)} key={item.id}><span><strong>{item.name}</strong><small>{category?.name || 'Unassigned'} · {item.exercise_type || 'strength'}</small></span><Plus /></button> })}{!availableExercises.length && <div className="session-manager-empty">No other exercises match your search.</div>}</div>
         </section>
       </Modal>}

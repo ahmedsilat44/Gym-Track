@@ -22,7 +22,7 @@ const setVolume = (set) => Number(set.weight || 0) * Number(set.reps || 0)
 
 const formatVolume = (value) => Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })
 
-const balanceColors = ['#57f1db', '#ffb2b9', '#b3b9ff', '#ffc477', '#74c7ff', '#c99cff', '#8ade9b']
+const balanceColors = ['var(--primary)', 'var(--coral)', 'var(--indigo)', 'var(--warning)', 'var(--chart-blue)', 'var(--chart-purple)', 'var(--success)']
 
 export default function Progress() {
   const navigate = useNavigate()
